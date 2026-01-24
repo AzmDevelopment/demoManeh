@@ -1,0 +1,43 @@
+{
+  "categories": [
+    { "label": "Electronics", "value": "CAT001" },
+    { "label": "Automotive", "value": "CAT002" },
+    { "label": "Industrial", "value": "CAT003" },
+    { "label": "Consumer Goods", "value": "CAT004" },
+    { "label": "Medical Devices", "value": "CAT005" }
+  ],
+  "products": {
+    "CAT001": [
+      { "label": "Smartphone Battery", "value": "PROD001" },
+      { "label": "Laptop Battery", "value": "PROD002" },
+      { "label": "Tablet Battery", "value": "PROD003" }
+    ],
+    "CAT002": [
+      { "label": "EV Battery Pack", "value": "PROD004" },
+      { "label": "Starter Battery", "value": "PROD005" },
+      { "label": "Hybrid Battery", "value": "PROD006" }
+    ],
+    "CAT003": [
+      { "label": "Forklift Battery", "value": "PROD007" },
+      { "label": "UPS Battery", "value": "PROD008" },
+      { "label": "Solar Storage Battery", "value": "PROD009" }
+    ],
+    "CAT004": [
+      { "label": "Power Bank", "value": "PROD010" },
+      { "label": "Toy Battery", "value": "PROD011" },
+      { "label": "Flashlight Battery", "value": "PROD012" }
+    ],
+    "CAT005": [
+      { "label": "Pacemaker Battery", "value": "PROD013" },
+      { "label": "Hearing Aid Battery", "value": "PROD014" },
+      { "label": "Medical Device Battery", "value": "PROD015" }
+    ]
+  },
+  "vatCategories": [
+    { "label": "Standard Rate (15%)", "value": "VAT15" },
+    { "label": "Reduced Rate (5%)", "value": "VAT5" },
+    { "label": "Zero Rate (0%)", "value": "VAT0" },
+    { "label": "Exempt", "value": "EXEMPT" }
+  ],
+  "requiredProductCategories": ["CAT001", "CAT003", "CAT005"]
+}

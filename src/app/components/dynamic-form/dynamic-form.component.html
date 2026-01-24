@@ -1,0 +1,98 @@
+@if (isLoading()) {
+  <div class="loading-container">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <p class="mt-3">Loading form configuration...</p>
+  </div>
+} @else if (formConfig()) {
+  <div class="form-container">
+    <div class="card">
+      <div class="card-header bg-primary text-white">
+        <h4 class="mb-0">{{ formConfig()!.title }}</h4>
+      </div>
+      <div class="card-body">
+        <!-- Alert Messages -->
+        @if (showAlert()) {
+          <div
+            class="alert alert-dismissible fade show"
+            [class.alert-success]="showAlert()!.type === 'success'"
+            [class.alert-danger]="showAlert()!.type === 'error'"
+            [class.alert-warning]="showAlert()!.type === 'warning'"
+            role="alert"
+          >
+            @if (showAlert()!.type === 'success') {
+              <i class="bi bi-check-circle-fill me-2"></i>
+            } @else if (showAlert()!.type === 'error') {
+              <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            }
+            <strong>{{ showAlert()!.type === 'success' ? 'Success!' : 'Error!' }}</strong>
+            {{ showAlert()!.message }}
+            <button type="button" class="btn-close" (click)="dismissAlert()" aria-label="Close"></button>
+          </div>
+        }
+
+        <form [formGroup]="form" (ngSubmit)="onSubmit()">
+          <formly-form
+            [form]="form"
+            [fields]="fields"
+            [model]="model"
+            (modelChange)="model = $event"
+          ></formly-form>
+
+          <hr class="my-4">
+
+          <div class="d-flex gap-3">
+            <button
+              type="submit"
+              class="btn btn-primary btn-lg"
+              [disabled]="!hasRequiredFieldsFilled || form.invalid"
+            >
+              <span class="me-2">Save</span>
+              @if (!hasRequiredFieldsFilled || form.invalid) {
+                <i class="bi bi-lock-fill"></i>
+              } @else {
+                <i class="bi bi-check-lg"></i>
+              }
+            </button>
+            <button
+              type="button"
+              class="btn btn-outline-secondary btn-lg"
+              (click)="resetForm()"
+            >
+              <span class="me-2">Reset</span>
+              <i class="bi bi-arrow-counterclockwise"></i>
+            </button>
+          </div>
+
+          @if (!hasRequiredFieldsFilled) {
+            <div class="text-muted mt-3">
+              <small>
+                <i class="bi bi-info-circle me-1"></i>
+                Please fill in all required fields to enable the Save button.
+              </small>
+            </div>
+          }
+        </form>
+      </div>
+    </div>
+
+    <!-- Debug Panel -->
+    <div class="card mt-4">
+      <div class="card-header bg-secondary text-white">
+        <h6 class="mb-0">Form Model (Debug)</h6>
+      </div>
+      <div class="card-body">
+        <pre class="mb-0 bg-light p-3 rounded"><code>{{ cleanModel | json }}</code></pre>
+        <div class="mt-2">
+          <span class="badge" [class.bg-success]="form.valid" [class.bg-danger]="form.invalid">
+            Form {{ form.valid ? 'Valid' : 'Invalid' }}
+          </span>
+          <span class="badge ms-2" [class.bg-success]="hasRequiredFieldsFilled" [class.bg-warning]="!hasRequiredFieldsFilled">
+            Required Fields {{ hasRequiredFieldsFilled ? 'Complete' : 'Incomplete' }}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+}
