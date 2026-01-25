@@ -16,35 +16,29 @@
     {
       "stepRef": "workflows/Steps/certificate_specific/CT401_new/CT401_step1_data_entry",
       "overrides": {
-        "nextStep": "CT401_step2_document_upload"
+        "nextStep": "CT401_step2_initial_review"
       }
     },
     {
-      "stepRef": "workflows/Steps/certificate_specific/CT401_new/CT401_step2_document_upload",
+      "stepRef": "workflows/Steps/certificate_specific/CT401_new/CT401_step2_initial_review",
       "overrides": {
-        "nextStep": "CT401_step3_initial_review"
+        "nextStep": "CT401_step3_factory_inspection"
       }
     },
     {
-      "stepRef": "workflows/Steps/certificate_specific/CT401_new/CT401_step3_initial_review",
+      "stepRef": "workflows/Steps/certificate_specific/CT401_new/CT401_step3_factory_inspection",
       "overrides": {
-        "nextStep": "CT401_step4_factory_inspection"
-      }
-    },
-    {
-      "stepRef": "workflows/Steps/certificate_specific/CT401_new/CT401_step4_factory_inspection",
-      "overrides": {
-        "nextStep": "CT401_step5_technical_evaluation"
+        "nextStep": "CT401_step4_technical_evaluation"
       }
     },
      {
-      "stepRef": "workflows/Steps/certificate_specific/CT401_new/CT401_step5_technical_evaluation",
+      "stepRef": "workflows/Steps/certificate_specific/CT401_new/CT401_step4_technical_evaluation",
       "overrides": {
-        "nextStep": "CT401_step6_final_approval"
+        "nextStep": "CT401_step5_final_approval"
       }
     },
      {
-      "stepRef": "workflows/Steps/certificate_specific/CT401_new/CT401_step6_final_approval",
+      "stepRef": "workflows/Steps/certificate_specific/CT401_new/CT401_step5_final_approval",
       "overrides": {
         "nextStep": "completed"
       }

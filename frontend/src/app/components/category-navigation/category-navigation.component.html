@@ -4,24 +4,70 @@
     <p class="page-subtitle">Select a category to begin the certification process</p>
   </div>
 
-  <div class="categories-grid">
-    @for (category of categories; track category.id) {
-      <button
-        class="category-card"
-        (click)="navigateToForm(category)"
-        type="button"
-      >
-        <div class="category-icon">
-          <i class="bi {{ category.icon }}"></i>
-        </div>
-        <div class="category-content">
-          <h3 class="category-name">{{ category.name }}</h3>
-          <p class="category-description">{{ category.description }}</p>
-        </div>
-        <div class="category-arrow">
-          <i class="bi bi-arrow-right"></i>
-        </div>
-      </button>
-    }
+  <!-- Debug Info -->
+  <div style="background: #f0f0f0; padding: 10px; margin: 10px 0; font-size: 12px;">
+    <strong>Debug:</strong> 
+    Loading: {{ loading }} | 
+    Error: {{ error }} | 
+    Categories Count: {{ categories.length }}
   </div>
+
+  <!-- Loading State -->
+  @if (loading) {
+    <div class="loading-container">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <p class="loading-text">Loading available certifications...</p>
+    </div>
+  }
+
+  <!-- Error State -->
+  @if (error && !loading) {
+    <div class="alert alert-danger" role="alert">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      <span>{{ error }}</span>
+      <button class="btn btn-sm btn-outline-danger ms-3" (click)="retry()">
+        <i class="bi bi-arrow-clockwise"></i> Retry
+      </button>
+    </div>
+  }
+
+  <!-- Categories Grid -->
+  @if (!loading && !error && categories.length > 0) {
+    <div class="categories-grid">
+      @for (category of categories; track category.id) {
+        <button
+          class="category-card"
+          (click)="navigateToForm(category)"
+          type="button"
+        >
+          <div class="category-icon">
+            <i class="bi {{ category.icon }}"></i>
+          </div>
+          <div class="category-content">
+            <h3 class="category-name">{{ category.name }}</h3>
+            <p class="category-description">{{ category.description }}</p>
+            @if (category.metadata?.estimatedTotalDurationDays) {
+              <small class="text-muted">
+                <i class="bi bi-clock"></i> 
+                ~{{ category.metadata.estimatedTotalDurationDays }} days
+              </small>
+            }
+          </div>
+          <div class="category-arrow">
+            <i class="bi bi-arrow-right"></i>
+          </div>
+        </button>
+      }
+    </div>
+  }
+
+  <!-- No Categories State -->
+  @if (!loading && !error && categories.length === 0) {
+    <div class="alert alert-info" role="alert">
+      <i class="bi bi-info-circle-fill"></i>
+      <span>No workflow definitions available at the moment.</span>
+    </div>
+  }
 </div>

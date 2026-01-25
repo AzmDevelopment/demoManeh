@@ -14,31 +14,31 @@
 
   "steps": [
     {
-      "stepRef": "workflows/Steps/certificate_specific/BT501/BT501_step1_data_entry",
+      "stepRef": "workflows/Steps/certificate_specific/BT501_new/BT501_step1_data_entry",
       "overrides": {
         "nextStep": "BT501_step2_lab_testing"
       }
     },
     {
-      "stepRef": "workflows/Steps/certificate_specific/BT501/BT501_step2_lab_testing",
+      "stepRef": "workflows/Steps/certificate_specific/BT501_new/BT501_step2_lab_testing",
       "overrides": {
         "nextStep": "BT501_step3_quality_review"
       }
     },
     {
-      "stepRef": "workflows/Steps/certificate_specific/BT501/BT501_step3_quality_review",
+      "stepRef": "workflows/Steps/certificate_specific/BT501_new/BT501_step3_quality_review",
       "overrides": {
         "nextStep": "BT501_step4_compliance_check"
       }
     },
     {
-      "stepRef": "workflows/Steps/certificate_specific/BT501/BT501_step4_compliance_check",
+      "stepRef": "workflows/Steps/certificate_specific/BT501_new/BT501_step4_compliance_check",
       "overrides": {
         "nextStep": "BT501_step5_final_approval"
       }
     },
     {
-      "stepRef": "workflows/Steps/certificate_specific/BT501/BT501_step5_final_approval",
+      "stepRef": "workflows/Steps/certificate_specific/BT501_new/BT501_step5_final_approval",
       "overrides": {
         "nextStep": "completed"
       }

@@ -97,7 +97,7 @@
   
   "stepConfig": {
     "canSendBack": true,
-    "sendBackTarget": "CT401_step3_initial_review",
+    "sendBackTarget": "CT401_step2_initial_review",
     "canApprove": true,
     "canReject": true,
     "nextStep": "certificate_generation",

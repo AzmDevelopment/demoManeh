@@ -49,12 +49,12 @@
       }
     }
   ],
-  
+
   "stepConfig": {
     "canSendBack": true,
-    "sendBackTarget": "CT401_step3_initial_review",
+    "sendBackTarget": "CT401_step3_factory_inspection",
     "canApprove": false,
-    "nextStep": "CT401_step6_final_approval",
+    "nextStep": "CT401_step5_final_approval",
     "estimatedDurationHours": 36,
     "requiredActor": "senior_engineer"
   },

@@ -76,7 +76,7 @@
       "templateOptions": {
         "label": "Inspection Date",
         "required": true,
-        "disabled": true
+        "disabled": false
       },
       "expressionProperties": {
         "model.inspectionDate": "new Date().toISOString().split('T')[0]"
@@ -100,12 +100,12 @@
       "errorMessage": "Document compliance must be verified"
     }
   ],
-  
+
   "stepConfig": {
     "canSendBack": true,
-    "sendBackTarget": "CT401_step2_document_upload",
+    "sendBackTarget": "CT401_step1_data_entry",
     "canApprove": true,
-    "nextStep": "CT401_step4_factory_inspection",
+    "nextStep": "CT401_step3_factory_inspection",
     "estimatedDurationHours": 24,
     "escalationAfterHours": 48,
     "requiredActor": "inspector"

@@ -92,12 +92,12 @@
       "errorMessage": "All inspection fields are required"
     }
   ],
-  
+
   "stepConfig": {
     "canSendBack": true,
-    "sendBackTarget": "CT401_step3_initial_review",
+    "sendBackTarget": "CT401_step2_initial_review",
     "estimatedDurationHours": 48,
-    "nextStep": "CT401_step5_technical_evaluation",
+    "nextStep": "CT401_step4_technical_evaluation",
     "requiredActor": "inspector"
   },
   

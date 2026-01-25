@@ -14,15 +14,18 @@ public class WorkflowController : ControllerBase
 {
     private readonly IWorkflowEngine _workflowEngine;
     private readonly IWorkflowDefinitionProvider _definitionProvider;
+    private readonly IFileStorageService _fileStorageService;
     private readonly ILogger<WorkflowController> _logger;
 
     public WorkflowController(
         IWorkflowEngine workflowEngine,
         IWorkflowDefinitionProvider definitionProvider,
+        IFileStorageService fileStorageService,
         ILogger<WorkflowController> logger)
     {
         _workflowEngine = workflowEngine;
         _definitionProvider = definitionProvider;
+        _fileStorageService = fileStorageService;
         _logger = logger;
     }
 
@@ -326,6 +329,121 @@ public class WorkflowController : ControllerBase
         {
             _logger.LogError(ex, "Error getting current step for instance {InstanceId}", instanceId);
             return StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
+    /// <summary>
+    /// Upload files for a workflow step
+    /// </summary>
+    /// <param name="instanceId">The workflow instance ID</param>
+    /// <param name="stepId">The step ID</param>
+    /// <param name="uploadedBy">User uploading the files</param>
+    /// <param name="files">The files to upload</param>
+    /// <returns>File metadata for uploaded files</returns>
+    /// <response code="200">Returns the uploaded file metadata</response>
+    /// <response code="400">If no files provided or validation fails</response>
+    /// <response code="404">If workflow instance not found</response>
+    [HttpPost("instances/{instanceId}/steps/{stepId}/upload")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<Dictionary<string, object>>> UploadFiles(
+        Guid instanceId,
+        string stepId,
+        [FromQuery] string uploadedBy,
+        [FromForm] IFormFileCollection files)
+    {
+        try
+        {
+            if (files == null || files.Count == 0)
+            {
+                return BadRequest(new { message = "No files provided" });
+            }
+
+            // Verify instance exists
+            var instance = await _workflowEngine.GetWorkflowInstanceAsync(instanceId);
+            if (instance == null)
+            {
+                return NotFound(new { message = $"Workflow instance not found: {instanceId}" });
+            }
+
+            // Group files by field key (using form field name)
+            var fileMetadataByField = new Dictionary<string, object>();
+
+            foreach (var file in files)
+            {
+                var fieldKey = file.Name; // Form field name
+                var metadata = await _fileStorageService.SaveFileAsync(file, fieldKey, uploadedBy);
+
+                // Check if field already has files (multiple upload)
+                if (fileMetadataByField.ContainsKey(fieldKey))
+                {
+                    // Convert to list if not already
+                    if (fileMetadataByField[fieldKey] is List<FileMetadata> existingList)
+                    {
+                        existingList.Add(metadata);
+                    }
+                    else
+                    {
+                        // Convert single file to list
+                        var singleFile = (FileMetadata)fileMetadataByField[fieldKey];
+                        fileMetadataByField[fieldKey] = new List<FileMetadata> { singleFile, metadata };
+                    }
+                }
+                else
+                {
+                    fileMetadataByField[fieldKey] = metadata;
+                }
+            }
+
+            _logger.LogInformation(
+                "Uploaded {Count} files for instance {InstanceId}, step {StepId}",
+                files.Count, instanceId, stepId);
+
+            return Ok(new
+            {
+                instanceId,
+                stepId,
+                uploadedFiles = fileMetadataByField,
+                totalFiles = files.Count
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error uploading files for instance {InstanceId}", instanceId);
+            return StatusCode(500, new { message = $"Error uploading files: {ex.Message}" });
+        }
+    }
+
+    /// <summary>
+    /// Download an uploaded file
+    /// </summary>
+    /// <param name="fileName">The stored file name</param>
+    /// <returns>The file</returns>
+    /// <response code="200">Returns the file</response>
+    /// <response code="404">If file not found</response>
+    [HttpGet("files/{fileName}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DownloadFile(string fileName)
+    {
+        try
+        {
+            var fileResult = await _fileStorageService.GetFileAsync(fileName);
+
+            if (fileResult == null)
+            {
+                return NotFound(new { message = "File not found" });
+            }
+
+            var (stream, contentType, originalFileName) = fileResult.Value;
+
+            return File(stream, contentType, originalFileName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error downloading file: {FileName}", fileName);
+            return StatusCode(500, new { message = "Error downloading file" });
         }
     }
 }

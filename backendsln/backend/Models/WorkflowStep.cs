@@ -30,10 +30,14 @@ public class TemplateOptions
     public List<SelectOption>? Options { get; set; }
     public bool? Loading { get; set; }
     public string? Placeholder { get; set; }
-    public int? Min { get; set; }
-    public int? Max { get; set; }
+    public string? Type { get; set; }  // "number", "text", "email", etc.
+    public decimal? Min { get; set; }  // Changed from int? to decimal? for better numeric support
+    public decimal? Max { get; set; }  // Changed from int? to decimal? for better numeric support
+    public string? Step { get; set; }  // For number inputs (e.g., "0.01")
+    public string? Pattern { get; set; }  // Regex pattern for validation
     public bool? Multiple { get; set; }
-    public string? Accept { get; set; }
+    public string? Accept { get; set; }  // File extensions like ".pdf,.doc,.docx"
+    public long? MaxFileSize { get; set; }  // Max file size in bytes
 }
 
 public class SelectOption

@@ -38,14 +38,14 @@ builder.Services.AddSwaggerGen(options =>
     }
 });
 
-// Add CORS for frontend communication
+// Add CORS for frontend communication - OPEN FOR POC (Allow all origins)
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowFrontend", policy =>
+    options.AddPolicy("AllowAll", policy =>
     {
-        policy.WithOrigins("http://localhost:4200", "http://localhost:3000")
-              .AllowAnyHeader()
-              .AllowAnyMethod();
+        policy.AllowAnyOrigin()      // Allow any origin for POC
+              .AllowAnyHeader()      // Allow any header
+              .AllowAnyMethod();     // Allow any HTTP method (GET, POST, PUT, DELETE, etc.)
     });
 });
 
@@ -65,6 +65,7 @@ builder.Services.AddSingleton<IWorkflowDefinitionProvider, FileSystemWorkflowDef
 builder.Services.AddScoped<IWorkflowRepository, EfCoreWorkflowRepository>();
 builder.Services.AddSingleton<ValidationRuleFactory>();
 builder.Services.AddScoped<IWorkflowEngine, WorkflowEngine>();
+builder.Services.AddSingleton<IFileStorageService, LocalFileStorageService>();
 
 var app = builder.Build();
 
@@ -104,7 +105,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseCors("AllowFrontend");
+app.UseCors("AllowAll");
 
 app.UseAuthorization();
 
