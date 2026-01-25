@@ -3,7 +3,7 @@
   "name": "Initial Review",
   "actor": "inspector",
   "description": "Inspector reviews application documents and submitted information",
-  
+
   "fields": [
     {
       "key": "applicationSummary",
@@ -75,7 +75,7 @@
       "type": "date",
       "templateOptions": {
         "label": "Inspection Date",
-        "required": true,
+        "required": false,
         "disabled": true
       },
       "expressionProperties": {
@@ -83,7 +83,7 @@
       }
     }
   ],
-  
+
   "validationRules": [
     {
       "ruleId": "validateInspectionComplete",
@@ -100,7 +100,7 @@
       "errorMessage": "Document compliance must be verified"
     }
   ],
-  
+
   "stepConfig": {
     "canSendBack": true,
     "sendBackTarget": "CT401_step2_document_upload",
@@ -110,7 +110,7 @@
     "escalationAfterHours": 48,
     "requiredActor": "inspector"
   },
-  
+
   "permissions": {
     "inspector": {
       "canEdit": ["reviewNotes", "inspectionResult", "documentCompliance"],

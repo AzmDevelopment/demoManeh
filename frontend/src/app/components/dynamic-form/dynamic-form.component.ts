@@ -33,8 +33,7 @@ export class DynamicFormComponent implements OnInit, OnDestroy {
   isLoading = signal(true);
   showAlert = signal<{ type: 'success' | 'error' | 'warning'; message: string } | null>(null);
 
-  // Workflow-specific properties
-  isWorkflow = signal(false);
+  // Workflow properties
   workflowSteps: any[] = [];
   currentStepIndex = signal(0);
   stepFormData: Record<string, any>[] = [];
@@ -87,23 +86,18 @@ export class DynamicFormComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (config: any) => {
-          // Check if this is a workflow definition (has steps array)
+          // Load workflow (all forms are now workflows)
           if (config.steps && Array.isArray(config.steps)) {
-            this.isWorkflow.set(true);
             this.loadWorkflowSteps(config);
           } else {
-            // Regular form
-            this.isWorkflow.set(false);
-            this.formConfig.set(config);
-            this.fields = this.buildFormlyFields(config);
             this.isLoading.set(false);
-            this.loadInitialOptions();
+            this.showAlert.set({ type: 'error', message: 'Invalid workflow configuration. Please check the workflow definition.' });
           }
         },
         error: (err) => {
-          console.error('Failed to load form config:', err);
+          console.error('Failed to load workflow config:', err);
           this.isLoading.set(false);
-          this.showAlert.set({ type: 'error', message: 'Failed to load form configuration. Please refresh the page.' });
+          this.showAlert.set({ type: 'error', message: 'Failed to load workflow configuration. Please refresh the page.' });
         }
       });
   }
@@ -165,9 +159,40 @@ export class DynamicFormComponent implements OnInit, OnDestroy {
     // Check if field has inline options defined
     const hasInlineOptions = field.templateOptions.options && field.templateOptions.options.length > 0;
 
+    // Map JSON field types to Formly types
+    let formlyType = field.type;
+    switch (field.type) {
+      case 'input':
+        formlyType = 'input';
+        break;
+      case 'textarea':
+        formlyType = 'textarea';
+        break;
+      case 'select':
+        formlyType = 'select';
+        break;
+      case 'radio':
+        formlyType = 'radio';
+        break;
+      case 'checkbox':
+        formlyType = 'checkbox';
+        break;
+      case 'multicheckbox':
+        formlyType = 'multicheckbox';
+        break;
+      case 'file':
+        formlyType = 'file';
+        break;
+      case 'date':
+        formlyType = 'input';
+        break;
+      default:
+        formlyType = 'input';
+    }
+
     const formlyField: FormlyFieldConfig = {
       key: field.key,
-      type: field.type === 'select' ? 'select' : 'input',
+      type: formlyType,
       props: {
         label: field.templateOptions.label,
         placeholder: field.templateOptions.placeholder || '',
@@ -179,10 +204,43 @@ export class DynamicFormComponent implements OnInit, OnDestroy {
       validators: {}
     };
 
-    if (field.type === 'input' && field.templateOptions.type) {
-      formlyField.props!.type = field.templateOptions.type;
+    // Handle input-specific properties
+    if (field.type === 'input') {
+      formlyField.props!.type = field.templateOptions.type || 'text';
       if (field.templateOptions.min !== undefined) formlyField.props!.min = field.templateOptions.min;
-      if (field.templateOptions.step) formlyField.props!.step = field.templateOptions.step;
+      if (field.templateOptions.max !== undefined) formlyField.props!.max = field.templateOptions.max;
+      if (field.templateOptions.step !== undefined) formlyField.props!.step = field.templateOptions.step;
+      if (field.templateOptions.minLength !== undefined) formlyField.props!.minLength = field.templateOptions.minLength;
+      if (field.templateOptions.maxLength !== undefined) formlyField.props!.maxLength = field.templateOptions.maxLength;
+      if (field.templateOptions.pattern) formlyField.props!.pattern = field.templateOptions.pattern;
+    }
+
+    // Handle date type
+    if (field.type === 'date') {
+      formlyField.props!.type = 'date';
+    }
+
+    // Handle textarea-specific properties
+    if (field.type === 'textarea') {
+      formlyField.props!.rows = field.templateOptions.rows || 3;
+      if (field.templateOptions.cols) formlyField.props!.cols = field.templateOptions.cols;
+      if (field.templateOptions.maxLength !== undefined) formlyField.props!.maxLength = field.templateOptions.maxLength;
+    }
+
+    // Handle file-specific properties
+    if (field.type === 'file') {
+      formlyField.props!['accept'] = field.templateOptions.accept || '';
+      formlyField.props!['multiple'] = field.templateOptions.multiple || false;
+      if (field.templateOptions.maxFileSize) {
+        formlyField.props!['maxFileSize'] = field.templateOptions.maxFileSize;
+      }
+    }
+
+    // Handle radio and checkbox properties
+    if (field.type === 'radio' || field.type === 'multicheckbox') {
+      if (field.templateOptions.options) {
+        formlyField.props!.options = field.templateOptions.options;
+      }
     }
 
     // Handle hideExpression dynamically
@@ -399,32 +457,36 @@ export class DynamicFormComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (this.isWorkflow()) {
-      // Save current step data
-      this.stepFormData[this.currentStepIndex()] = { ...this.cleanModel };
+    // Get current step configuration
+    const currentStepConfig = this.workflowSteps[this.currentStepIndex()];
+    const stepId = currentStepConfig?.stepId;
 
-      // Check if this is the last step
-      if (this.currentStepIndex() === this.workflowSteps.length - 1) {
-        // Final submission
-        console.log('Workflow completed! All data:', this.stepFormData);
-        this.showAlert.set({ type: 'success', message: 'Workflow completed successfully! Certificate application submitted.' });
-        setTimeout(() => {
-          this.router.navigate(['/']);
-        }, 3000);
-      } else {
-        // Move to next step
-        this.currentStepIndex.set(this.currentStepIndex() + 1);
-        this.loadCurrentWorkflowStep();
-        this.showAlert.set(null);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-    } else {
-      // Regular form submission
-      console.log('Form Data:', this.cleanModel);
-      this.showAlert.set({ type: 'success', message: 'Form submitted successfully! Data has been saved.' });
+    // Save current step data
+    this.stepFormData[this.currentStepIndex()] = { ...this.cleanModel };
+
+    // Prepare data object with stepId on top
+    const stepDataWithId = {
+      stepId: stepId,
+      ...this.cleanModel
+    };
+
+    // Console the data for current step
+    console.log('Step Data:', stepDataWithId);
+
+    // Check if this is the last step
+    if (this.currentStepIndex() === this.workflowSteps.length - 1) {
+      // Final submission
+      console.log('Workflow completed! All data:', this.stepFormData);
+      this.showAlert.set({ type: 'success', message: 'Workflow completed successfully! Certificate application submitted.' });
       setTimeout(() => {
-        if (this.showAlert()?.type === 'success') this.showAlert.set(null);
-      }, 5000);
+        this.router.navigate(['/']);
+      }, 3000);
+    } else {
+      // Move to next step
+      this.currentStepIndex.set(this.currentStepIndex() + 1);
+      this.loadCurrentWorkflowStep();
+      this.showAlert.set(null);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }
 
@@ -440,20 +502,6 @@ export class DynamicFormComponent implements OnInit, OnDestroy {
     }
   }
 
-  resetForm(): void {
-    this.form.reset();
-    this.model = {};
-    this.showAlert.set(null);
-
-    // Reset all select fields dynamically
-    this.fields.forEach((field, index) => {
-      if (index > 0 && field.type === 'select') {
-        field.props!.options = [];
-        field.props!.disabled = true;
-        field.props!.placeholder = `Select ${this.fields[0].props?.label?.toLowerCase() || 'option'} first`;
-      }
-    });
-  }
 
   dismissAlert(): void {
     this.showAlert.set(null);

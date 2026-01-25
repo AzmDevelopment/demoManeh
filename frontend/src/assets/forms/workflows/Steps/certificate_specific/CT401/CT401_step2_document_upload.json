@@ -3,7 +3,7 @@
   "name": "Document Upload - Step 2",
   "actor": "customer",
   "description": "Upload required technical documents",
-  
+
   "fields": [
     {
       "key": "technicalSpecs",
@@ -26,7 +26,7 @@
       }
     }
   ],
-  
+
   "validationRules": [
     {
       "ruleId": "fileUpload",
@@ -38,7 +38,7 @@
       "errorMessage": "Invalid file uploads"
     }
   ],
-  
+
   "stepConfig": {
     "canSendBack": true,
     "sendBackTarget": "CT401_step1_data_entry",

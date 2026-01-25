@@ -3,7 +3,7 @@
   "name": "Factory Inspection",
   "actor": "inspector",
   "description": "On-site factory inspection for manufacturing facilities",
-  
+
   "fields": [
     {
       "key": "visitDate",
@@ -19,7 +19,7 @@
       "templateOptions": {
         "label": "Inspector Name",
         "required": true,
-        "disabled": true
+        "disabled": false
       },
       "expressionProperties": {
         "model.inspectorName": "formState.currentUser"
@@ -76,14 +76,14 @@
       "templateOptions": {
         "label": "Inspection Date",
         "required": true,
-        "disabled": true
+        "disabled": false
       },
       "expressionProperties": {
         "model.inspectionDate": "new Date().toISOString().split('T')[0]"
       }
     }
   ],
-  
+
   "validationRules": [
     {
       "ruleId": "validateFactoryCompliance",
@@ -92,7 +92,7 @@
       "errorMessage": "All inspection fields are required"
     }
   ],
-  
+
   "stepConfig": {
     "canSendBack": true,
     "sendBackTarget": "CT401_step3_initial_review",
@@ -100,7 +100,7 @@
     "nextStep": "CT401_step5_technical_evaluation",
     "requiredActor": "inspector"
   },
-  
+
   "permissions": {
     "inspector": {
       "canEdit": ["factoryCompliance", "keyObservations", "inspectorRecommendation", "compliancePhotos"],

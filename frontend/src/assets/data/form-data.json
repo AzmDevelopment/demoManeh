@@ -1,10 +1,7 @@
 {
   "categories": [
-    { "label": "Electronics", "value": "CAT001" },
-    { "label": "Automotive", "value": "CAT002" },
-    { "label": "Industrial", "value": "CAT003" },
-    { "label": "Consumer Goods", "value": "CAT004" },
-    { "label": "Medical Devices", "value": "CAT005" }
+    { "label": "Electronics - Lithium Battery", "value": "CAT001" },
+    { "label": "Beauty - Cosmetics", "value": "CAT002" }
   ],
   "products": {
     "CAT001": [
@@ -13,24 +10,9 @@
       { "label": "Tablet Battery", "value": "PROD003" }
     ],
     "CAT002": [
-      { "label": "EV Battery Pack", "value": "PROD004" },
-      { "label": "Starter Battery", "value": "PROD005" },
-      { "label": "Hybrid Battery", "value": "PROD006" }
-    ],
-    "CAT003": [
-      { "label": "Forklift Battery", "value": "PROD007" },
-      { "label": "UPS Battery", "value": "PROD008" },
-      { "label": "Solar Storage Battery", "value": "PROD009" }
-    ],
-    "CAT004": [
-      { "label": "Power Bank", "value": "PROD010" },
-      { "label": "Toy Battery", "value": "PROD011" },
-      { "label": "Flashlight Battery", "value": "PROD012" }
-    ],
-    "CAT005": [
-      { "label": "Pacemaker Battery", "value": "PROD013" },
-      { "label": "Hearing Aid Battery", "value": "PROD014" },
-      { "label": "Medical Device Battery", "value": "PROD015" }
+      { "label": "Shampoo", "value": "PROD004" },
+      { "label": "Conditioner", "value": "PROD005" },
+      { "label": "Body Lotion", "value": "PROD006" }
     ]
   },
   "vatCategories": [
@@ -39,5 +21,5 @@
     { "label": "Zero Rate (0%)", "value": "VAT0" },
     { "label": "Exempt", "value": "EXEMPT" }
   ],
-  "requiredProductCategories": ["CAT001", "CAT003", "CAT005"]
+  "requiredProductCategories": ["CAT001", "CAT002"]
 }

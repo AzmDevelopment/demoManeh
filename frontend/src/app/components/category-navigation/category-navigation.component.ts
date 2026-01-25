@@ -27,46 +27,11 @@ export class CategoryNavigationComponent {
       formConfigFile: 'workflows/Definitions/CT401_lithium_battery_new'
     },
     {
-      id: 'cement',
-      name: 'Cement',
-      icon: 'bi-building',
-      description: 'Construction and cement products',
-      formConfigFile: 'cement-local'
-    },
-    {
       id: 'beauty',
       name: 'Beauty',
       icon: 'bi-stars',
       description: 'Cosmetics and beauty products',
-      formConfigFile: 'beauty-local'
-    },
-    {
-      id: 'paper',
-      name: 'Paper',
-      icon: 'bi-file-earmark',
-      description: 'Paper and stationery products',
-      formConfigFile: 'paper-local'
-    },
-    {
-      id: 'textiles',
-      name: 'Textiles',
-      icon: 'bi-basket',
-      description: 'Fabric and textile products',
-      formConfigFile: 'textiles-local'
-    },
-    {
-      id: 'food-beverages',
-      name: 'Food & Beverages',
-      icon: 'bi-cup-hot',
-      description: 'Food and beverage products',
-      formConfigFile: 'food-beverages-local'
-    },
-    {
-      id: 'pharmaceuticals',
-      name: 'Pharmaceuticals',
-      icon: 'bi-capsule',
-      description: 'Medical and pharmaceutical products',
-      formConfigFile: 'pharmaceuticals-local'
+      formConfigFile: 'workflows/Definitions/BT501_shampoo'
     }
   ];
 

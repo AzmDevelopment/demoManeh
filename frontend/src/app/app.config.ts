@@ -1,15 +1,26 @@
-import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
+import { ApplicationConfig, provideBrowserGlobalErrorListeners, importProvidersFrom } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient, withFetch } from '@angular/common/http';
+import { FormlyModule } from '@ngx-formly/core';
+import { FormlyBootstrapModule } from '@ngx-formly/bootstrap';
 
 import { routes } from './app.routes';
 import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
+import { FormlyFieldFile } from './components/dynamic-form/formly-field-file.type';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
     provideHttpClient(withFetch()),
-    provideClientHydration(withEventReplay())
+    provideClientHydration(withEventReplay()),
+    importProvidersFrom(
+      FormlyModule.forRoot({
+        types: [
+          { name: 'file', component: FormlyFieldFile }
+        ]
+      }),
+      FormlyBootstrapModule
+    )
   ]
 };

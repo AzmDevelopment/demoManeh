@@ -1,0 +1,139 @@
+{
+  "stepId": "BT501_step4_compliance_check",
+  "name": "Compliance Check - Step 4",
+  "actor": "compliance_officer",
+  "description": "Compliance officer verifies regulatory compliance and legal requirements",
+
+  "fields": [
+    {
+      "key": "regulatoryCompliance",
+      "type": "multicheckbox",
+      "templateOptions": {
+        "label": "Regulatory Compliance Checklist",
+        "required": true,
+        "options": [
+          { "value": "fda_approved", "label": "FDA Approved Ingredients" },
+          { "value": "eu_compliant", "label": "EU Cosmetics Regulation Compliant" },
+          { "value": "local_standards", "label": "Local Standards Met" },
+          { "value": "banned_substances", "label": "No Banned Substances Detected" }
+        ]
+      }
+    },
+    {
+      "key": "labelingCompliance",
+      "type": "multicheckbox",
+      "templateOptions": {
+        "label": "Labeling Compliance",
+        "required": true,
+        "options": [
+          { "value": "ingredients_inci", "label": "Ingredients in INCI Format" },
+          { "value": "usage_instructions", "label": "Usage Instructions Present" },
+          { "value": "warnings_complete", "label": "Warnings & Precautions Complete" },
+          { "value": "manufacturer_info", "label": "Manufacturer Information Complete" }
+        ]
+      }
+    },
+    {
+      "key": "safetyDataSheet",
+      "type": "radio",
+      "templateOptions": {
+        "label": "Safety Data Sheet (SDS) Review",
+        "required": true,
+        "options": [
+          { "value": "complete", "label": "Complete & Up-to-Date" },
+          { "value": "revision_needed", "label": "Revision Needed" },
+          { "value": "missing", "label": "Missing" }
+        ]
+      }
+    },
+    {
+      "key": "certificationDocuments",
+      "type": "multicheckbox",
+      "templateOptions": {
+        "label": "Required Certification Documents",
+        "required": true,
+        "options": [
+          { "value": "gmp_certificate", "label": "GMP Certificate" },
+          { "value": "manufacturing_license", "label": "Manufacturing License" },
+          { "value": "product_registration", "label": "Product Registration" },
+          { "value": "test_certificates", "label": "Lab Test Certificates" }
+        ]
+      }
+    },
+    {
+      "key": "environmentalCompliance",
+      "type": "radio",
+      "templateOptions": {
+        "label": "Environmental Compliance",
+        "required": true,
+        "options": [
+          { "value": "compliant", "label": "Fully Compliant" },
+          { "value": "partially_compliant", "label": "Partially Compliant" },
+          { "value": "non_compliant", "label": "Non-Compliant" }
+        ]
+      }
+    },
+    {
+      "key": "complianceIssues",
+      "type": "textarea",
+      "templateOptions": {
+        "label": "Compliance Issues Identified",
+        "rows": 4,
+        "placeholder": "List any compliance issues or concerns"
+      }
+    },
+    {
+      "key": "complianceNotes",
+      "type": "textarea",
+      "templateOptions": {
+        "label": "Compliance Officer Notes",
+        "rows": 5,
+        "required": true,
+        "placeholder": "Enter detailed compliance review notes"
+      }
+    },
+    {
+      "key": "complianceDecision",
+      "type": "radio",
+      "templateOptions": {
+        "label": "Compliance Decision",
+        "required": true,
+        "options": [
+          { "value": "approved", "label": "Approved - Proceed to Final Approval" },
+          { "value": "conditional", "label": "Conditional - Corrections Required" },
+          { "value": "rejected", "label": "Rejected - Non-Compliant" }
+        ]
+      }
+    },
+    {
+      "key": "complianceReport",
+      "type": "file",
+      "templateOptions": {
+        "label": "Upload Compliance Report",
+        "required": true,
+        "accept": ".pdf,.docx"
+      }
+    },
+    {
+      "key": "complianceDate",
+      "type": "date",
+      "templateOptions": {
+        "label": "Compliance Check Date",
+        "required": false,
+        "disabled": true
+      },
+      "expressionProperties": {
+        "model.complianceDate": "new Date().toISOString().split('T')[0]"
+      }
+    }
+  ],
+
+  "stepConfig": {
+    "canSendBack": true,
+    "sendBackTarget": "BT501_step3_quality_review",
+    "canApprove": false,
+    "nextStep": "BT501_step5_final_approval",
+    "estimatedDurationHours": 24,
+    "requiredActor": "compliance_officer"
+  }
+}

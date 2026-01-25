@@ -1,0 +1,155 @@
+{
+  "stepId": "BT501_step5_final_approval",
+  "name": "Final Approval - Step 5",
+  "actor": "manager",
+  "description": "Manager performs final review and approves shampoo certification",
+
+  "fields": [
+    {
+      "key": "workflowSummary",
+      "type": "textarea",
+      "templateOptions": {
+        "label": "Workflow Summary",
+        "rows": 4,
+        "disabled": true,
+        "placeholder": "Auto-generated summary of all previous steps..."
+      }
+    },
+    {
+      "key": "finalReviewChecklist",
+      "type": "multicheckbox",
+      "templateOptions": {
+        "label": "Final Review Checklist",
+        "required": true,
+        "options": [
+          { "value": "lab_tests_passed", "label": "All Lab Tests Passed" },
+          { "value": "quality_approved", "label": "Quality Review Approved" },
+          { "value": "compliance_verified", "label": "Compliance Verified" },
+          { "value": "documentation_complete", "label": "All Documentation Complete" }
+        ]
+      }
+    },
+    {
+      "key": "certificateType",
+      "type": "select",
+      "templateOptions": {
+        "label": "Certificate Type",
+        "required": true,
+        "options": [
+          { "value": "full_certification", "label": "Full Certification" },
+          { "value": "conditional_certification", "label": "Conditional Certification" },
+          { "value": "temporary_certification", "label": "Temporary Certification (3 months)" }
+        ]
+      }
+    },
+    {
+      "key": "certificateValidityYears",
+      "type": "select",
+      "templateOptions": {
+        "label": "Certificate Validity Period",
+        "required": true,
+        "options": [
+          { "value": "1", "label": "1 Year" },
+          { "value": "2", "label": "2 Years" },
+          { "value": "3", "label": "3 Years" }
+        ]
+      },
+      "hideExpression": "model.certificateType !== 'full_certification'"
+    },
+    {
+      "key": "specialConditions",
+      "type": "textarea",
+      "templateOptions": {
+        "label": "Special Conditions or Restrictions",
+        "rows": 3,
+        "placeholder": "Enter any special conditions or restrictions"
+      }
+    },
+    {
+      "key": "managerNotes",
+      "type": "textarea",
+      "templateOptions": {
+        "label": "Manager's Final Notes",
+        "rows": 5,
+        "required": true,
+        "placeholder": "Enter final review notes and comments"
+      }
+    },
+    {
+      "key": "finalDecision",
+      "type": "radio",
+      "templateOptions": {
+        "label": "Final Decision",
+        "required": true,
+        "options": [
+          { "value": "approve", "label": "Approve - Issue Certificate" },
+          { "value": "reject", "label": "Reject - Do Not Issue Certificate" },
+          { "value": "send_back", "label": "Send Back for Corrections" }
+        ]
+      }
+    },
+    {
+      "key": "certificateNumber",
+      "type": "input",
+      "templateOptions": {
+        "label": "Certificate Number",
+        "placeholder": "Auto-generated upon approval",
+        "disabled": true
+      },
+      "hideExpression": "model.finalDecision !== 'approve'"
+    },
+    {
+      "key": "managerSignature",
+      "type": "file",
+      "templateOptions": {
+        "label": "Manager Digital Signature",
+        "required": true,
+        "accept": ".jpg,.png,.pdf"
+      }
+    },
+    {
+      "key": "approvalDate",
+      "type": "date",
+      "templateOptions": {
+        "label": "Approval Date",
+        "required": false,
+        "disabled": true
+      },
+      "expressionProperties": {
+        "model.approvalDate": "new Date().toISOString().split('T')[0]"
+      }
+    }
+  ],
+
+  "validationRules": [
+    {
+      "ruleId": "validateApproval",
+      "type": "custom",
+      "executor": "validateFinalApproval",
+      "errorMessage": "All checklist items must be verified before approval"
+    }
+  ],
+
+  "stepConfig": {
+    "canSendBack": true,
+    "sendBackTarget": "BT501_step4_compliance_check",
+    "canApprove": true,
+    "nextStep": "completed",
+    "estimatedDurationHours": 24,
+    "requiredActor": "manager",
+    "isFinalStep": true
+  },
+
+  "permissions": {
+    "manager": {
+      "canEdit": ["managerNotes", "finalDecision", "certificateType", "specialConditions"],
+      "canApprove": true,
+      "canReject": true,
+      "canSendBack": true
+    },
+    "director": {
+      "canView": ["managerNotes", "finalDecision"],
+      "canOverride": true
+    }
+  }
+}
