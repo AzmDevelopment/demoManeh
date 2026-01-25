@@ -1,0 +1,227 @@
+<div class="workflow-step-container">
+  <!-- Loading State -->
+  @if (loading) {
+    <div class="loading-container">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <p class="loading-text">Loading workflow step...</p>
+    </div>
+  }
+
+  <!-- Error State -->
+  @if (error && !loading) {
+    <div class="alert alert-danger" role="alert">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      <span>{{ error }}</span>
+    </div>
+  }
+
+  <!-- Workflow Step Content -->
+  @if (!loading && !error && stepDefinition) {
+    <div class="step-content">
+      <!-- Breadcrumb -->
+      <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item">
+            <a [routerLink]="['/']">Home</a>
+          </li>
+          <li class="breadcrumb-item">
+            {{ instance.definitionId }}
+          </li>
+          <li class="breadcrumb-item active" aria-current="page">
+            {{ stepDefinition.name }}
+          </li>
+        </ol>
+      </nav>
+
+      <!-- Step Header -->
+      <div class="step-header">
+        <div class="step-info">
+          <h2 class="step-title">{{ stepDefinition.name }}</h2>
+          <p class="step-description">{{ stepDefinition.description }}</p>
+          <div class="step-meta">
+            <span class="badge bg-primary">Step {{ stepDefinition.stepId }}</span>
+            <span class="badge bg-info">{{ instance.status }}</span>
+            <span class="badge bg-secondary">Assigned to: {{ instance.assignedActor }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Validation Errors -->
+      @if (validationErrors.length > 0) {
+        <div class="alert alert-danger">
+          <h6><i class="bi bi-exclamation-circle"></i> Please fix the following errors:</h6>
+          <ul class="mb-0">
+            @for (error of validationErrors; track error.field) {
+              <li>{{ error.message }}</li>
+            }
+          </ul>
+        </div>
+      }
+
+      <!-- Form -->
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="step-form">
+        <div class="form-fields">
+          @for (field of stepDefinition.fields; track field.key) {
+            <div class="form-group mb-4">
+              <label [for]="field.key" class="form-label">
+                {{ field.templateOptions.label }}
+                @if (field.templateOptions.required) {
+                  <span class="text-danger">*</span>
+                }
+              </label>
+
+              <!-- Text Input -->
+              @if (field.type === 'input' && (!field.templateOptions.type || field.templateOptions.type === 'text')) {
+                <input
+                  [id]="field.key"
+                  [formControlName]="field.key"
+                  type="text"
+                  class="form-control"
+                  [class.is-invalid]="hasFieldError(field.key)"
+                  [placeholder]="field.templateOptions.placeholder || ''"
+                />
+              }
+
+              <!-- Number Input -->
+              @if (field.type === 'input' && field.templateOptions.type === 'number') {
+                <input
+                  [id]="field.key"
+                  [formControlName]="field.key"
+                  type="number"
+                  class="form-control"
+                  [class.is-invalid]="hasFieldError(field.key)"
+                  [min]="field.templateOptions.min"
+                  [max]="field.templateOptions.max"
+                  [step]="field.templateOptions.step"
+                />
+              }
+
+              <!-- Select Dropdown -->
+              @if (field.type === 'select') {
+                <select
+                  [id]="field.key"
+                  [formControlName]="field.key"
+                  class="form-select"
+                  [class.is-invalid]="hasFieldError(field.key)"
+                >
+                  <option value="">Select {{ field.templateOptions.label }}</option>
+                  @for (option of field.templateOptions.options; track option.value) {
+                    <option [value]="option.value">{{ option.label }}</option>
+                  }
+                </select>
+              }
+
+              <!-- Textarea -->
+              @if (field.type === 'textarea') {
+                <textarea
+                  [id]="field.key"
+                  [formControlName]="field.key"
+                  class="form-control"
+                  [class.is-invalid]="hasFieldError(field.key)"
+                  [rows]="field.templateOptions.rows || 3"
+                ></textarea>
+              }
+
+              <!-- File Upload -->
+              @if (field.type === 'file') {
+                <input
+                  [id]="field.key"
+                  type="file"
+                  class="form-control"
+                  [accept]="field.templateOptions.accept"
+                  [multiple]="field.templateOptions.multiple"
+                />
+                <small class="form-text text-muted">
+                  @if (field.templateOptions.accept) {
+                    Allowed types: {{ field.templateOptions.accept }}
+                  }
+                  @if (field.templateOptions.maxFileSize) {
+                    Max size: {{ field.templateOptions.maxFileSize / 1048576 }}MB
+                  }
+                </small>
+              }
+
+              <!-- Field Error -->
+              @if (hasFieldError(field.key)) {
+                <div class="invalid-feedback d-block">
+                  {{ getFieldError(field.key) }}
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- Form Actions -->
+        <div class="form-actions">
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            (click)="cancel()"
+          >
+            <i class="bi bi-x-circle"></i> Cancel
+          </button>
+
+          @if (stepDefinition.stepConfig?.canSendBack) {
+            <button
+              type="button"
+              class="btn btn-outline-warning"
+              (click)="goBack()"
+            >
+              <i class="bi bi-arrow-left"></i> Send Back
+            </button>
+          }
+
+          <button
+            type="button"
+            class="btn btn-outline-primary"
+            (click)="validateForm()"
+            [disabled]="validating"
+          >
+            @if (validating) {
+              <span class="spinner-border spinner-border-sm me-2"></span>
+            }
+            <i class="bi bi-check-circle"></i> Validate
+          </button>
+
+          <button
+            type="submit"
+            class="btn btn-primary"
+            [disabled]="submitting || validating"
+          >
+            @if (submitting) {
+              <span class="spinner-border spinner-border-sm me-2"></span>
+            }
+            <i class="bi bi-arrow-right-circle"></i> Submit & Continue
+          </button>
+        </div>
+      </form>
+
+      <!-- Workflow Progress -->
+      <div class="workflow-progress mt-5">
+        <h5>Workflow History</h5>
+        @if (instance.stepHistory && instance.stepHistory.length > 0) {
+          <div class="timeline">
+            @for (step of instance.stepHistory; track step.stepId) {
+              <div class="timeline-item">
+                <div class="timeline-marker"></div>
+                <div class="timeline-content">
+                  <h6>{{ step.stepId }}</h6>
+                  <p class="text-muted mb-1">
+                    Completed by {{ step.completedBy }} on {{ step.completedAt | date:'short' }}
+                  </p>
+                  @if (step.comments) {
+                    <p class="mb-0"><em>{{ step.comments }}</em></p>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <p class="text-muted">No history yet. This is the first step.</p>
+        }
+      </div>
+    </div>
+  }
+</div>

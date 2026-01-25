@@ -173,14 +173,127 @@ export class CategoryNavigationComponent implements OnInit {
   /**
    * Navigate to workflow form
    */
-  navigateToForm(category: CategoryConfig): void {
-    this.router.navigate(['/form', category.formConfigFile]);
+  async navigateToForm(category: CategoryConfig): Promise<void> {
+    try {
+      // Extract certification ID from formConfigFile
+      // e.g., "workflows/Definitions/CT401_lithium_battery_new" -> "CT401_lithium_battery_new"
+      const certificationId = category.formConfigFile.split('/').pop() || category.id;
+      
+      console.log('=== NAVIGATION DEBUG ===');
+      console.log('Category clicked:', category.name);
+      console.log('Certification ID:', certificationId);
+      
+      // Check if user has an in-progress workflow for this certification
+      const existingInstance = await this.checkForExistingInstance(certificationId);
+      
+      if (existingInstance) {
+        console.log('=== FOUND EXISTING INSTANCE ===');
+        console.log('Instance ID:', existingInstance.id);
+        console.log('Definition ID:', existingInstance.definitionId);
+        console.log('Current Step:', existingInstance.currentStep);
+        console.log('Status:', existingInstance.status);
+        console.log('Full instance object:', existingInstance);
+        
+        // Navigate to the current step of existing instance
+        this.navigateToCurrentStep(existingInstance);
+      } else {
+        console.log('=== NO EXISTING INSTANCE - CREATING NEW ===');
+        // Create new workflow instance
+        await this.createNewWorkflowInstance(certificationId);
+      }
+    } catch (error) {
+      console.error('Error navigating to workflow:', error);
+      this.error = 'Failed to start workflow. Please try again.';
+    }
   }
 
   /**
-   * Retry loading definitions
+   * Check if user has an in-progress workflow instance for this certification
    */
-  retry(): void {
-    this.loadWorkflowDefinitions();
+  private async checkForExistingInstance(certificationId: string): Promise<any | null> {
+    try {
+      console.log('=== CHECKING FOR EXISTING INSTANCES ===');
+      console.log('Looking for certification ID:', certificationId);
+      
+      // Get all in-progress workflows (you might want to filter by user)
+      const instances = await this.workflowService.getWorkflowsByStatus('in_progress').toPromise();
+      
+      console.log('All in-progress instances:', instances);
+      console.log('Number of in-progress instances:', instances?.length || 0);
+      
+      // Find instance matching this certification ID
+      const matchingInstance = instances?.find(
+        (instance: any) => {
+          console.log(`Comparing: "${instance.definitionId}" === "${certificationId}"`);
+          return instance.definitionId === certificationId;
+        }
+      );
+      
+      if (matchingInstance) {
+        console.log('=== MATCH FOUND ===');
+        console.log('Matching instance:', matchingInstance);
+      } else {
+        console.log('=== NO MATCH FOUND ===');
+      }
+      
+      return matchingInstance || null;
+    } catch (error) {
+      console.error('Error checking for existing instance:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Create a new workflow instance
+   */
+  private async createNewWorkflowInstance(certificationId: string): Promise<void> {
+    try {
+      const userEmail = this.getCurrentUserEmail();
+      
+      const newInstance = await this.workflowService.createWorkflowInstance({
+        certificationId: certificationId,
+        createdBy: userEmail,
+        priority: 3
+      }).toPromise();
+      
+      console.log('Created new workflow instance:', newInstance);
+      
+      if (newInstance) {
+        this.navigateToCurrentStep(newInstance);
+      }
+    } catch (error) {
+      console.error('Error creating workflow instance:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Navigate to the current step of a workflow instance
+   */
+  private navigateToCurrentStep(instance: any): void {
+    const instanceId = instance.id;
+    const currentStep = instance.currentStep;
+    
+    console.log(`=== NAVIGATING TO STEP ===`);
+    console.log(`Instance ID: ${instanceId}`);
+    console.log(`Current Step: ${currentStep}`);
+    console.log(`Full URL: /workflow/${instanceId}/step/${currentStep}`);
+    
+    // Force navigation refresh to ensure component reloads with correct data
+    // First navigate away (without changing displayed URL)
+    this.router.navigateByUrl('/', { skipLocationChange: true }).then(() => {
+      // Then navigate to the correct step
+      this.router.navigate(['/workflow', instanceId, 'step', currentStep]).then(() => {
+        console.log('=== NAVIGATION COMPLETE ===');
+      });
+    });
+  }
+
+  /**
+   * Get current user email (replace with your auth service)
+   */
+  private getCurrentUserEmail(): string {
+    // TODO: Get from your authentication service
+    return 'user@example.com';
   }
 }
