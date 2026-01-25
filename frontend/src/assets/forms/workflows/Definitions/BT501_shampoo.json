@@ -1,0 +1,124 @@
+{
+  "certificationId": "BT501_shampoo",
+  "name": "BT501 Shampoo - Product Certification",
+  "description": "Complete 5-step workflow for BT501 shampoo product certification",
+  "version": "1.0",
+
+  "metadata": {
+    "workflowCode": "BT501",
+    "applicableCertificateTypes": ["shampoo", "cosmetic_product"],
+    "estimatedTotalDurationDays": 10,
+    "complexity": "medium",
+    "requiresLabTesting": true
+  },
+
+  "steps": [
+    {
+      "stepRef": "workflows/Steps/certificate_specific/BT501/BT501_step1_data_entry",
+      "overrides": {
+        "nextStep": "BT501_step2_lab_testing"
+      }
+    },
+    {
+      "stepRef": "workflows/Steps/certificate_specific/BT501/BT501_step2_lab_testing",
+      "overrides": {
+        "nextStep": "BT501_step3_quality_review"
+      }
+    },
+    {
+      "stepRef": "workflows/Steps/certificate_specific/BT501/BT501_step3_quality_review",
+      "overrides": {
+        "nextStep": "BT501_step4_compliance_check"
+      }
+    },
+    {
+      "stepRef": "workflows/Steps/certificate_specific/BT501/BT501_step4_compliance_check",
+      "overrides": {
+        "nextStep": "BT501_step5_final_approval"
+      }
+    },
+    {
+      "stepRef": "workflows/Steps/certificate_specific/BT501/BT501_step5_final_approval",
+      "overrides": {
+        "nextStep": "completed"
+      }
+    },
+    {
+      "stepId": "completed",
+      "name": "Certificate Issued",
+      "actor": "system",
+      "type": "system_action",
+      "systemAction": "generateCertificatePdf",
+      "status": "completed"
+    }
+  ],
+
+  "workflowConfig": {
+    "isLinear": true,
+    "allowParallelExecution": false,
+    "requiresApprovalAtEachStep": false,
+    "autoEscalationEnabled": true
+  },
+
+  "slaConfig": {
+    "totalSLADays": 10,
+    "stepSLAs": {
+      "BT501_step1_data_entry": 24,
+      "BT501_step2_lab_testing": 72,
+      "BT501_step3_quality_review": 48,
+      "BT501_step4_compliance_check": 24,
+      "BT501_step5_final_approval": 24
+    }
+  },
+
+  "notifications": {
+    "onStepComplete": true,
+    "onWorkflowComplete": true,
+    "onSendBack": true,
+    "recipients": ["applicant", "assignedActor", "supervisor"]
+  },
+
+  "permissions": {
+    "customer": {
+      "canStartWorkflow": true,
+      "canEditSteps": ["BT501_step1_data_entry"],
+      "canSendBack": false,
+      "canCancel": true
+    },
+    "lab_technician": {
+      "canEditSteps": ["BT501_step2_lab_testing"],
+      "canSendBack": true,
+      "canRequestInfo": true
+    },
+    "quality_reviewer": {
+      "canEditSteps": ["BT501_step3_quality_review"],
+      "canSendBack": true,
+      "canRequestInfo": true
+    },
+    "compliance_officer": {
+      "canEditSteps": ["BT501_step4_compliance_check"],
+      "canSendBack": true,
+      "canRequestInfo": true
+    },
+    "manager": {
+      "canEditSteps": ["BT501_step5_final_approval"],
+      "canApprove": true,
+      "canReject": true,
+      "canSendBack": true,
+      "canReassign": true
+    }
+  },
+
+  "integrations": {
+    "documentManagement": {
+      "required": true,
+      "autoArchive": true,
+      "retentionYears": 5
+    },
+    "notificationService": {
+      "email": true,
+      "sms": false,
+      "portal": true
+    }
+  }
+}

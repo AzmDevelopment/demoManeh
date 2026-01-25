@@ -1,0 +1,115 @@
+{
+  "stepId": "BT501_step1_data_entry",
+  "name": "Product Information - Step 1",
+  "actor": "customer",
+  "description": "Applicant provides basic product and manufacturer details for shampoo certification",
+
+  "fields": [
+    {
+      "key": "applicantName",
+      "type": "input",
+      "templateOptions": {
+        "label": "Applicant Full Name",
+        "required": true,
+        "placeholder": "Enter full name"
+      }
+    },
+    {
+      "key": "companyName",
+      "type": "input",
+      "templateOptions": {
+        "label": "Company Name",
+        "required": true,
+        "placeholder": "Enter company name"
+      }
+    },
+    {
+      "key": "manufacturerName",
+      "type": "input",
+      "templateOptions": {
+        "label": "Manufacturer Name",
+        "required": true,
+        "placeholder": "Enter manufacturer name"
+      }
+    },
+    {
+      "key": "productName",
+      "type": "input",
+      "templateOptions": {
+        "label": "Shampoo Product Name",
+        "required": true,
+        "placeholder": "Enter product name"
+      }
+    },
+    {
+      "key": "brandName",
+      "type": "input",
+      "templateOptions": {
+        "label": "Brand Name",
+        "required": true,
+        "placeholder": "Enter brand name"
+      }
+    },
+    {
+      "key": "productType",
+      "type": "select",
+      "templateOptions": {
+        "label": "Product Type",
+        "required": true,
+        "options": [
+          { "value": "regular_shampoo", "label": "Regular Shampoo" },
+          { "value": "anti_dandruff", "label": "Anti-Dandruff Shampoo" },
+          { "value": "herbal", "label": "Herbal Shampoo" },
+          { "value": "baby_shampoo", "label": "Baby Shampoo" },
+          { "value": "medicated", "label": "Medicated Shampoo" }
+        ]
+      }
+    },
+    {
+      "key": "volumeSize",
+      "type": "input",
+      "templateOptions": {
+        "label": "Volume Size (ml)",
+        "type": "number",
+        "required": true,
+        "min": 1,
+        "placeholder": "Enter volume in ml"
+      }
+    },
+    {
+      "key": "ingredients",
+      "type": "textarea",
+      "templateOptions": {
+        "label": "Ingredients List",
+        "rows": 4,
+        "required": true,
+        "placeholder": "List all ingredients in order of concentration"
+      }
+    },
+    {
+      "key": "manufacturingCountry",
+      "type": "input",
+      "templateOptions": {
+        "label": "Country of Manufacture",
+        "required": true,
+        "placeholder": "Enter country"
+      }
+    },
+    {
+      "key": "batchNumber",
+      "type": "input",
+      "templateOptions": {
+        "label": "Sample Batch Number",
+        "required": true,
+        "placeholder": "Enter batch number"
+      }
+    }
+  ],
+
+  "stepConfig": {
+    "canSendBack": false,
+    "estimatedDurationHours": 24,
+    "nextStep": "BT501_step2_lab_testing",
+    "isMandatory": true
+  }
+}

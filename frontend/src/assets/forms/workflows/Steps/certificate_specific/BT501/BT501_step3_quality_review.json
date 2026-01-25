@@ -1,0 +1,128 @@
+{
+  "stepId": "BT501_step3_quality_review",
+  "name": "Quality Review - Step 3",
+  "actor": "quality_reviewer",
+  "description": "Quality reviewer evaluates test results and product quality standards",
+
+  "fields": [
+    {
+      "key": "labResultSummary",
+      "type": "textarea",
+      "templateOptions": {
+        "label": "Lab Results Summary",
+        "rows": 3,
+        "disabled": true,
+        "placeholder": "Auto-populated from lab test results..."
+      }
+    },
+    {
+      "key": "packagingReview",
+      "type": "multicheckbox",
+      "templateOptions": {
+        "label": "Packaging Quality Checklist",
+        "required": true,
+        "options": [
+          { "value": "label_complete", "label": "Product Label Complete & Legible" },
+          { "value": "ingredients_listed", "label": "Ingredients Listed Properly" },
+          { "value": "batch_info", "label": "Batch Number & Expiry Visible" },
+          { "value": "safety_warnings", "label": "Safety Warnings Present" }
+        ]
+      }
+    },
+    {
+      "key": "qualityStandards",
+      "type": "multicheckbox",
+      "templateOptions": {
+        "label": "Quality Standards Compliance",
+        "required": true,
+        "options": [
+          { "value": "iso_22716", "label": "ISO 22716 (GMP) Compliance" },
+          { "value": "safety_assessment", "label": "Safety Assessment Complete" },
+          { "value": "stability_data", "label": "Stability Data Verified" },
+          { "value": "documentation", "label": "Documentation Complete" }
+        ]
+      }
+    },
+    {
+      "key": "formulaReview",
+      "type": "radio",
+      "templateOptions": {
+        "label": "Formula Review Status",
+        "required": true,
+        "options": [
+          { "value": "approved", "label": "Approved - Formula Meets Standards" },
+          { "value": "conditional", "label": "Conditional - Minor Adjustments Needed" },
+          { "value": "rejected", "label": "Rejected - Major Issues Found" }
+        ]
+      }
+    },
+    {
+      "key": "allergenCheck",
+      "type": "radio",
+      "templateOptions": {
+        "label": "Allergen Declaration Check",
+        "required": true,
+        "options": [
+          { "value": "complete", "label": "Complete & Accurate" },
+          { "value": "incomplete", "label": "Incomplete or Inaccurate" }
+        ]
+      }
+    },
+    {
+      "key": "qualityScore",
+      "type": "input",
+      "templateOptions": {
+        "label": "Quality Score (0-100)",
+        "type": "number",
+        "required": true,
+        "min": 0,
+        "max": 100,
+        "placeholder": "Enter quality score"
+      }
+    },
+    {
+      "key": "reviewerNotes",
+      "type": "textarea",
+      "templateOptions": {
+        "label": "Quality Reviewer Notes",
+        "rows": 5,
+        "required": true,
+        "placeholder": "Enter detailed quality review observations"
+      }
+    },
+    {
+      "key": "reviewDecision",
+      "type": "radio",
+      "templateOptions": {
+        "label": "Review Decision",
+        "required": true,
+        "options": [
+          { "value": "proceed", "label": "Proceed to Compliance Check" },
+          { "value": "send_back", "label": "Send Back to Lab Testing" },
+          { "value": "reject", "label": "Reject Application" }
+        ]
+      }
+    },
+    {
+      "key": "reviewDate",
+      "type": "date",
+      "templateOptions": {
+        "label": "Review Date",
+        "required": false,
+        "disabled": true
+      },
+      "expressionProperties": {
+        "model.reviewDate": "new Date().toISOString().split('T')[0]"
+      }
+    }
+  ],
+
+  "stepConfig": {
+    "canSendBack": true,
+    "sendBackTarget": "BT501_step2_lab_testing",
+    "canApprove": false,
+    "nextStep": "BT501_step4_compliance_check",
+    "estimatedDurationHours": 48,
+    "requiredActor": "quality_reviewer"
+  }
+}

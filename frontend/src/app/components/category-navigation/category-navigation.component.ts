@@ -38,7 +38,7 @@ export class CategoryNavigationComponent {
       name: 'Beauty',
       icon: 'bi-stars',
       description: 'Cosmetics and beauty products',
-      formConfigFile: 'beauty-local'
+      formConfigFile: 'workflows/Definitions/BT501_shampoo'
     },
     {
       id: 'paper',

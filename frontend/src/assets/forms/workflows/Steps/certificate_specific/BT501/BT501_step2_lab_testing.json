@@ -1,0 +1,140 @@
+{
+  "stepId": "BT501_step2_lab_testing",
+  "name": "Laboratory Testing - Step 2",
+  "actor": "lab_technician",
+  "description": "Lab technician conducts chemical and microbiological testing of shampoo sample",
+
+  "fields": [
+    {
+      "key": "sampleReceived",
+      "type": "radio",
+      "templateOptions": {
+        "label": "Sample Received",
+        "required": true,
+        "options": [
+          { "value": "yes", "label": "Yes - Sample Received" },
+          { "value": "no", "label": "No - Sample Not Received" }
+        ]
+      }
+    },
+    {
+      "key": "phLevel",
+      "type": "input",
+      "templateOptions": {
+        "label": "pH Level",
+        "type": "number",
+        "required": true,
+        "step": 0.01,
+        "placeholder": "Enter pH value (e.g., 5.5)"
+      },
+      "hideExpression": "model.sampleReceived !== 'yes'"
+    },
+    {
+      "key": "viscosity",
+      "type": "input",
+      "templateOptions": {
+        "label": "Viscosity (cP)",
+        "type": "number",
+        "required": true,
+        "placeholder": "Enter viscosity in centipoise"
+      },
+      "hideExpression": "model.sampleReceived !== 'yes'"
+    },
+    {
+      "key": "microbiologicalTest",
+      "type": "multicheckbox",
+      "templateOptions": {
+        "label": "Microbiological Tests Passed",
+        "required": true,
+        "options": [
+          { "value": "total_plate_count", "label": "Total Plate Count" },
+          { "value": "yeast_mold", "label": "Yeast & Mold Test" },
+          { "value": "ecoli", "label": "E. Coli Test" },
+          { "value": "staphylococcus", "label": "Staphylococcus Test" }
+        ]
+      },
+      "hideExpression": "model.sampleReceived !== 'yes'"
+    },
+    {
+      "key": "chemicalAnalysis",
+      "type": "multicheckbox",
+      "templateOptions": {
+        "label": "Chemical Analysis Completed",
+        "required": true,
+        "options": [
+          { "value": "sulfate_content", "label": "Sulfate Content Analysis" },
+          { "value": "paraben_test", "label": "Paraben Test" },
+          { "value": "formaldehyde_test", "label": "Formaldehyde Test" },
+          { "value": "heavy_metals", "label": "Heavy Metals Test" }
+        ]
+      },
+      "hideExpression": "model.sampleReceived !== 'yes'"
+    },
+    {
+      "key": "stabilityTest",
+      "type": "radio",
+      "templateOptions": {
+        "label": "Stability Test Result",
+        "required": true,
+        "options": [
+          { "value": "pass", "label": "Pass" },
+          { "value": "fail", "label": "Fail" }
+        ]
+      },
+      "hideExpression": "model.sampleReceived !== 'yes'"
+    },
+    {
+      "key": "testResult",
+      "type": "radio",
+      "templateOptions": {
+        "label": "Overall Lab Test Result",
+        "required": true,
+        "options": [
+          { "value": "pass", "label": "Pass - All Tests Successful" },
+          { "value": "fail", "label": "Fail - Issues Found" },
+          { "value": "retest_required", "label": "Retest Required" }
+        ]
+      }
+    },
+    {
+      "key": "labNotes",
+      "type": "textarea",
+      "templateOptions": {
+        "label": "Lab Technician Notes",
+        "rows": 4,
+        "required": true,
+        "placeholder": "Enter detailed test observations and notes"
+      }
+    },
+    {
+      "key": "testReport",
+      "type": "file",
+      "templateOptions": {
+        "label": "Upload Test Report",
+        "required": true,
+        "accept": ".pdf,.jpg,.png"
+      }
+    },
+    {
+      "key": "testDate",
+      "type": "date",
+      "templateOptions": {
+        "label": "Test Completion Date",
+        "required": false,
+        "disabled": true
+      },
+      "expressionProperties": {
+        "model.testDate": "new Date().toISOString().split('T')[0]"
+      }
+    }
+  ],
+
+  "stepConfig": {
+    "canSendBack": true,
+    "sendBackTarget": "BT501_step1_data_entry",
+    "canApprove": false,
+    "nextStep": "BT501_step3_quality_review",
+    "estimatedDurationHours": 72,
+    "requiredActor": "lab_technician"
+  }
+}
