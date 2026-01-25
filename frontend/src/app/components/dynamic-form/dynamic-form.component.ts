@@ -165,9 +165,40 @@ export class DynamicFormComponent implements OnInit, OnDestroy {
     // Check if field has inline options defined
     const hasInlineOptions = field.templateOptions.options && field.templateOptions.options.length > 0;
 
+    // Map JSON field types to Formly types
+    let formlyType = field.type;
+    switch (field.type) {
+      case 'input':
+        formlyType = 'input';
+        break;
+      case 'textarea':
+        formlyType = 'textarea';
+        break;
+      case 'select':
+        formlyType = 'select';
+        break;
+      case 'radio':
+        formlyType = 'radio';
+        break;
+      case 'checkbox':
+        formlyType = 'checkbox';
+        break;
+      case 'multicheckbox':
+        formlyType = 'multicheckbox';
+        break;
+      case 'file':
+        formlyType = 'file';
+        break;
+      case 'date':
+        formlyType = 'input';
+        break;
+      default:
+        formlyType = 'input';
+    }
+
     const formlyField: FormlyFieldConfig = {
       key: field.key,
-      type: field.type === 'select' ? 'select' : 'input',
+      type: formlyType,
       props: {
         label: field.templateOptions.label,
         placeholder: field.templateOptions.placeholder || '',
@@ -179,10 +210,43 @@ export class DynamicFormComponent implements OnInit, OnDestroy {
       validators: {}
     };
 
-    if (field.type === 'input' && field.templateOptions.type) {
-      formlyField.props!.type = field.templateOptions.type;
+    // Handle input-specific properties
+    if (field.type === 'input') {
+      formlyField.props!.type = field.templateOptions.type || 'text';
       if (field.templateOptions.min !== undefined) formlyField.props!.min = field.templateOptions.min;
-      if (field.templateOptions.step) formlyField.props!.step = field.templateOptions.step;
+      if (field.templateOptions.max !== undefined) formlyField.props!.max = field.templateOptions.max;
+      if (field.templateOptions.step !== undefined) formlyField.props!.step = field.templateOptions.step;
+      if (field.templateOptions.minLength !== undefined) formlyField.props!.minLength = field.templateOptions.minLength;
+      if (field.templateOptions.maxLength !== undefined) formlyField.props!.maxLength = field.templateOptions.maxLength;
+      if (field.templateOptions.pattern) formlyField.props!.pattern = field.templateOptions.pattern;
+    }
+
+    // Handle date type
+    if (field.type === 'date') {
+      formlyField.props!.type = 'date';
+    }
+
+    // Handle textarea-specific properties
+    if (field.type === 'textarea') {
+      formlyField.props!.rows = field.templateOptions.rows || 3;
+      if (field.templateOptions.cols) formlyField.props!.cols = field.templateOptions.cols;
+      if (field.templateOptions.maxLength !== undefined) formlyField.props!.maxLength = field.templateOptions.maxLength;
+    }
+
+    // Handle file-specific properties
+    if (field.type === 'file') {
+      formlyField.props!['accept'] = field.templateOptions.accept || '';
+      formlyField.props!['multiple'] = field.templateOptions.multiple || false;
+      if (field.templateOptions.maxFileSize) {
+        formlyField.props!['maxFileSize'] = field.templateOptions.maxFileSize;
+      }
+    }
+
+    // Handle radio and checkbox properties
+    if (field.type === 'radio' || field.type === 'multicheckbox') {
+      if (field.templateOptions.options) {
+        formlyField.props!.options = field.templateOptions.options;
+      }
     }
 
     // Handle hideExpression dynamically
@@ -400,8 +464,21 @@ export class DynamicFormComponent implements OnInit, OnDestroy {
     }
 
     if (this.isWorkflow()) {
+      // Get current step configuration
+      const currentStepConfig = this.workflowSteps[this.currentStepIndex()];
+      const stepId = currentStepConfig?.stepId;
+
       // Save current step data
       this.stepFormData[this.currentStepIndex()] = { ...this.cleanModel };
+
+      // Prepare data object with stepId on top
+      const stepDataWithId = {
+        stepId: stepId,
+        ...this.cleanModel
+      };
+
+      // Console the data for current step
+      console.log('Step Data:', stepDataWithId);
 
       // Check if this is the last step
       if (this.currentStepIndex() === this.workflowSteps.length - 1) {

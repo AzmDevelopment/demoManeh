@@ -3,7 +3,7 @@
   "name": "Final Approval",
   "actor": "manager",
   "description": "Manager reviews inspector findings and makes final decision",
-  
+
   "fields": [
     {
       "key": "inspectorFindings",
@@ -69,14 +69,14 @@
       "templateOptions": {
         "label": "Approval Date",
         "required": true,
-        "disabled": true
+        "disabled": false
       },
       "expressionProperties": {
         "model.approvalDate": "new Date().toISOString().split('T')[0]"
       }
     }
   ],
-  
+
   "validationRules": [
     {
       "ruleId": "validateFinalDecision",
@@ -94,7 +94,7 @@
       "errorMessage": "Certificate validity must be between 1-5 years"
     }
   ],
-  
+
   "stepConfig": {
     "canSendBack": true,
     "sendBackTarget": "CT401_step3_initial_review",
@@ -105,7 +105,7 @@
     "escalationAfterHours": 72,
     "requiredActor": "manager"
   },
-  
+
   "permissions": {
     "manager": {
       "canEdit": ["finalDecision", "approvalComments", "certificateValidity"],
