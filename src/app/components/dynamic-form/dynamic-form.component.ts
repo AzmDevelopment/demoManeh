@@ -1,8 +1,9 @@
-import { Component, OnInit, OnDestroy, inject, signal, Input } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormGroup } from '@angular/forms';
 import { FormlyModule, FormlyFieldConfig } from '@ngx-formly/core';
 import { FormlyBootstrapModule } from '@ngx-formly/bootstrap';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { FormConfigService, FormConfig, FormFieldOption } from '../../services/form-config.service';
 
@@ -15,11 +16,13 @@ import { FormConfigService, FormConfig, FormFieldOption } from '../../services/f
 })
 export class DynamicFormComponent implements OnInit, OnDestroy {
   private formConfigService = inject(FormConfigService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
   private destroy$ = new Subject<void>();
   private requiredCategories: string[] = [];
   private optionsCache: Record<string, Record<string, FormFieldOption[]>> = {};
 
-  @Input() formId: string = 'lithium-battery-local';
+  formId: string = 'lithium-battery-local';
 
   form = new FormGroup({});
   model: Record<string, any> = {};
@@ -29,7 +32,37 @@ export class DynamicFormComponent implements OnInit, OnDestroy {
   showAlert = signal<{ type: 'success' | 'error' | 'warning'; message: string } | null>(null);
 
   ngOnInit(): void {
+    // Subscribe to route params to handle dynamic form loading
+    this.route.params
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(params => {
+        if (params['formId']) {
+          this.formId = params['formId'];
+          this.resetAndLoadForm();
+        } else {
+          this.loadFormConfig();
+        }
+      });
+  }
+
+  // Reset form state and load new config when category changes
+  private resetAndLoadForm(): void {
+    // Reset all form state
+    this.form = new FormGroup({});
+    this.model = {};
+    this.fields = [];
+    this.optionsCache = {};
+    this.formConfig.set(null);
+    this.isLoading.set(true);
+    this.showAlert.set(null);
+
+    // Load new form config
     this.loadFormConfig();
+  }
+
+  // Navigate back to category selection
+  goBack(): void {
+    this.router.navigate(['/']);
   }
 
   ngOnDestroy(): void {
@@ -64,6 +97,9 @@ export class DynamicFormComponent implements OnInit, OnDestroy {
   }
 
   private convertToFormlyField(field: any): FormlyFieldConfig {
+    // Check if field has inline options defined
+    const hasInlineOptions = field.templateOptions.options && field.templateOptions.options.length > 0;
+
     const formlyField: FormlyFieldConfig = {
       key: field.key,
       type: field.type === 'select' ? 'select' : 'input',
@@ -71,7 +107,7 @@ export class DynamicFormComponent implements OnInit, OnDestroy {
         label: field.templateOptions.label,
         placeholder: field.templateOptions.placeholder || '',
         required: field.templateOptions.required || false,
-        options: [],
+        options: hasInlineOptions ? field.templateOptions.options : [],
         disabled: field.templateOptions.disabled || false
       },
       expressions: {},
@@ -152,6 +188,20 @@ export class DynamicFormComponent implements OnInit, OnDestroy {
     if (expr.startsWith('!model.')) {
       const fieldName = expr.substring(7);
       return !model[fieldName];
+    }
+
+    // Handle inequality: model.field !== 'value'
+    const inequalityMatch = expr.match(/model\.(\w+)\s*!==\s*'([^']+)'/);
+    if (inequalityMatch) {
+      const [, fieldName, value] = inequalityMatch;
+      return model[fieldName] !== value;
+    }
+
+    // Handle equality: model.field === 'value'
+    const equalityMatch = expr.match(/model\.(\w+)\s*===\s*'([^']+)'/);
+    if (equalityMatch) {
+      const [, fieldName, value] = equalityMatch;
+      return model[fieldName] === value;
     }
 
     // Handle ternary: model.field ? 'value1' : 'value2'

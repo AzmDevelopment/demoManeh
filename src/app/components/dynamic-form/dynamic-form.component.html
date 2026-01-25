@@ -8,8 +8,17 @@
 } @else if (formConfig()) {
   <div class="form-container">
     <div class="card">
-      <div class="card-header bg-primary text-white">
-        <h4 class="mb-0">{{ formConfig()!.title }}</h4>
+      <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <button
+          type="button"
+          class="btn btn-outline-light btn-sm"
+          (click)="goBack()"
+        >
+          <i class="bi bi-arrow-left me-1"></i>
+          Back
+        </button>
+        <h4 class="mb-0 flex-grow-1 text-center">{{ formConfig()!.title }}</h4>
+        <div style="width: 70px;"></div>
       </div>
       <div class="card-body">
         <!-- Alert Messages -->

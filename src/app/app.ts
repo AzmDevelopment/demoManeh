@@ -1,9 +1,9 @@
 import { Component } from '@angular/core';
-import { DynamicFormComponent } from './components/dynamic-form/dynamic-form.component';
+import { RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-root',
-  imports: [DynamicFormComponent],
+  imports: [RouterOutlet],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })

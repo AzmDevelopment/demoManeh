@@ -1,0 +1,134 @@
+{
+  "certificationId": "cement_local_products",
+  "title": "Cement - Local Products Form",
+  "fields": [
+    {
+      "key": "cementType",
+      "type": "select",
+      "templateOptions": {
+        "label": "Cement Type",
+        "required": true,
+        "options": [
+          { "label": "Portland Cement", "value": "portland" },
+          { "label": "White Cement", "value": "white" },
+          { "label": "Rapid Hardening Cement", "value": "rapid" },
+          { "label": "Sulfate Resistant Cement", "value": "sulfate" },
+          { "label": "Low Heat Cement", "value": "low_heat" }
+        ],
+        "placeholder": "Select cement type"
+      },
+      "hooks": {
+        "onChanges": "onCementTypeChange"
+      },
+      "validation": {
+        "messages": {
+          "required": "Cement type selection is mandatory"
+        }
+      }
+    },
+    {
+      "key": "grade",
+      "type": "select",
+      "templateOptions": {
+        "label": "Grade",
+        "required": true,
+        "options": [
+          { "label": "Grade 33", "value": "33" },
+          { "label": "Grade 43", "value": "43" },
+          { "label": "Grade 53", "value": "53" }
+        ],
+        "placeholder": "Select grade"
+      },
+      "hideExpression": "!model.cementType",
+      "validation": {
+        "messages": {
+          "required": "Grade selection is required"
+        }
+      }
+    },
+    {
+      "key": "bagWeight",
+      "type": "select",
+      "templateOptions": {
+        "label": "Bag Weight",
+        "required": true,
+        "options": [
+          { "label": "25 kg", "value": "25" },
+          { "label": "50 kg", "value": "50" }
+        ],
+        "placeholder": "Select bag weight"
+      },
+      "hideExpression": "!model.cementType"
+    },
+    {
+      "key": "compressiveStrength",
+      "type": "input",
+      "templateOptions": {
+        "label": "Compressive Strength (MPa)",
+        "type": "number",
+        "min": 0,
+        "step": "0.1",
+        "required": true,
+        "placeholder": "Enter compressive strength"
+      },
+      "validators": {
+        "validation": ["positiveNumber"]
+      },
+      "hideExpression": "!model.grade"
+    },
+    {
+      "key": "settingTime",
+      "type": "input",
+      "templateOptions": {
+        "label": "Initial Setting Time (minutes)",
+        "type": "number",
+        "min": 30,
+        "required": true,
+        "placeholder": "Minimum 30 minutes"
+      },
+      "hideExpression": "!model.grade"
+    },
+    {
+      "key": "fineness",
+      "type": "input",
+      "templateOptions": {
+        "label": "Fineness (m²/kg)",
+        "type": "number",
+        "min": 0,
+        "step": "1",
+        "placeholder": "Enter fineness value"
+      },
+      "hideExpression": "!model.grade"
+    },
+    {
+      "key": "costPrice",
+      "type": "input",
+      "templateOptions": {
+        "label": "Cost Price per Bag",
+        "type": "number",
+        "min": 0,
+        "step": "0.01",
+        "required": true
+      },
+      "validators": {
+        "validation": ["positiveNumber"]
+      },
+      "validation": {
+        "messages": {
+          "required": "Cost price is required"
+        }
+      },
+      "hideExpression": "!model.cementType"
+    },
+    {
+      "key": "vatCategory",
+      "type": "select",
+      "templateOptions": {
+        "label": "VAT Category",
+        "options": [],
+        "placeholder": "Select VAT rate"
+      },
+      "hideExpression": "!model.costPrice"
+    }
+  ]
+}

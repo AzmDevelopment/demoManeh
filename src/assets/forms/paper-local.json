@@ -1,0 +1,166 @@
+{
+  "certificationId": "paper_local_products",
+  "title": "Paper - Local Products Form",
+  "fields": [
+    {
+      "key": "paperType",
+      "type": "select",
+      "templateOptions": {
+        "label": "Paper Type",
+        "required": true,
+        "options": [
+          { "label": "Printing Paper", "value": "printing" },
+          { "label": "Writing Paper", "value": "writing" },
+          { "label": "Packaging Paper", "value": "packaging" },
+          { "label": "Tissue Paper", "value": "tissue" },
+          { "label": "Cardboard", "value": "cardboard" },
+          { "label": "Specialty Paper", "value": "specialty" }
+        ],
+        "placeholder": "Select paper type"
+      },
+      "hooks": {
+        "onChanges": "onPaperTypeChange"
+      },
+      "validation": {
+        "messages": {
+          "required": "Paper type selection is mandatory"
+        }
+      }
+    },
+    {
+      "key": "gradeQuality",
+      "type": "select",
+      "templateOptions": {
+        "label": "Quality Grade",
+        "required": true,
+        "options": [
+          { "label": "Premium", "value": "premium" },
+          { "label": "Standard", "value": "standard" },
+          { "label": "Economy", "value": "economy" }
+        ],
+        "placeholder": "Select quality grade"
+      },
+      "hideExpression": "!model.paperType"
+    },
+    {
+      "key": "gsm",
+      "type": "input",
+      "templateOptions": {
+        "label": "GSM (Grams per Square Meter)",
+        "type": "number",
+        "min": 1,
+        "required": true,
+        "placeholder": "Enter GSM value"
+      },
+      "validators": {
+        "validation": ["positiveNumber"]
+      },
+      "hideExpression": "!model.paperType"
+    },
+    {
+      "key": "size",
+      "type": "select",
+      "templateOptions": {
+        "label": "Paper Size",
+        "options": [
+          { "label": "A4 (210 x 297 mm)", "value": "a4" },
+          { "label": "A3 (297 x 420 mm)", "value": "a3" },
+          { "label": "Letter (8.5 x 11 in)", "value": "letter" },
+          { "label": "Legal (8.5 x 14 in)", "value": "legal" },
+          { "label": "Roll", "value": "roll" },
+          { "label": "Custom", "value": "custom" }
+        ],
+        "placeholder": "Select paper size"
+      },
+      "hideExpression": "!model.gradeQuality"
+    },
+    {
+      "key": "customDimensions",
+      "type": "input",
+      "templateOptions": {
+        "label": "Custom Dimensions",
+        "placeholder": "Enter dimensions (e.g., 500mm x 700mm)"
+      },
+      "hideExpression": "model.size !== 'custom'"
+    },
+    {
+      "key": "brightness",
+      "type": "input",
+      "templateOptions": {
+        "label": "Brightness (%)",
+        "type": "number",
+        "min": 0,
+        "max": 100,
+        "placeholder": "Enter brightness percentage"
+      },
+      "hideExpression": "!model.gsm"
+    },
+    {
+      "key": "recycledContent",
+      "type": "select",
+      "templateOptions": {
+        "label": "Recycled Content",
+        "options": [
+          { "label": "0% (Virgin Paper)", "value": "0" },
+          { "label": "30% Recycled", "value": "30" },
+          { "label": "50% Recycled", "value": "50" },
+          { "label": "100% Recycled", "value": "100" }
+        ],
+        "placeholder": "Select recycled content"
+      },
+      "hideExpression": "!model.gsm"
+    },
+    {
+      "key": "sheetsPerPack",
+      "type": "input",
+      "templateOptions": {
+        "label": "Sheets per Pack",
+        "type": "number",
+        "min": 1,
+        "placeholder": "Enter number of sheets"
+      },
+      "hideExpression": "model.size === 'roll' || !model.size"
+    },
+    {
+      "key": "rollLength",
+      "type": "input",
+      "templateOptions": {
+        "label": "Roll Length (meters)",
+        "type": "number",
+        "min": 1,
+        "placeholder": "Enter roll length"
+      },
+      "hideExpression": "model.size !== 'roll'"
+    },
+    {
+      "key": "costPrice",
+      "type": "input",
+      "templateOptions": {
+        "label": "Cost Price per Unit",
+        "type": "number",
+        "min": 0,
+        "step": "0.01",
+        "required": true
+      },
+      "validators": {
+        "validation": ["positiveNumber"]
+      },
+      "validation": {
+        "messages": {
+          "required": "Cost price is required"
+        }
+      },
+      "hideExpression": "!model.paperType"
+    },
+    {
+      "key": "vatCategory",
+      "type": "select",
+      "templateOptions": {
+        "label": "VAT Category",
+        "options": [],
+        "placeholder": "Select VAT rate"
+      },
+      "hideExpression": "!model.costPrice"
+    }
+  ]
+}

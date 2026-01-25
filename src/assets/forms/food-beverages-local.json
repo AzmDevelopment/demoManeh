@@ -1,0 +1,177 @@
+{
+  "certificationId": "food_beverages_local_products",
+  "title": "Food & Beverages - Local Products Form",
+  "fields": [
+    {
+      "key": "productType",
+      "type": "select",
+      "templateOptions": {
+        "label": "Product Type",
+        "required": true,
+        "options": [
+          { "label": "Processed Food", "value": "processed" },
+          { "label": "Fresh Produce", "value": "fresh" },
+          { "label": "Beverages", "value": "beverages" },
+          { "label": "Dairy Products", "value": "dairy" },
+          { "label": "Bakery Products", "value": "bakery" },
+          { "label": "Snacks & Confectionery", "value": "snacks" }
+        ],
+        "placeholder": "Select product type"
+      },
+      "hooks": {
+        "onChanges": "onProductTypeChange"
+      },
+      "validation": {
+        "messages": {
+          "required": "Product type selection is mandatory"
+        }
+      }
+    },
+    {
+      "key": "productName",
+      "type": "input",
+      "templateOptions": {
+        "label": "Product Name",
+        "required": true,
+        "placeholder": "Enter product name"
+      },
+      "hideExpression": "!model.productType",
+      "validation": {
+        "messages": {
+          "required": "Product name is required"
+        }
+      }
+    },
+    {
+      "key": "brandName",
+      "type": "input",
+      "templateOptions": {
+        "label": "Brand Name",
+        "required": true,
+        "placeholder": "Enter brand name"
+      },
+      "hideExpression": "!model.productType"
+    },
+    {
+      "key": "packagingType",
+      "type": "select",
+      "templateOptions": {
+        "label": "Packaging Type",
+        "options": [
+          { "label": "Bottle", "value": "bottle" },
+          { "label": "Can", "value": "can" },
+          { "label": "Box/Carton", "value": "box" },
+          { "label": "Pouch/Sachet", "value": "pouch" },
+          { "label": "Jar", "value": "jar" },
+          { "label": "Tray", "value": "tray" }
+        ],
+        "placeholder": "Select packaging type"
+      },
+      "hideExpression": "!model.productName"
+    },
+    {
+      "key": "unitSize",
+      "type": "input",
+      "templateOptions": {
+        "label": "Unit Size",
+        "placeholder": "e.g., 500ml, 250g, 1kg"
+      },
+      "hideExpression": "!model.packagingType"
+    },
+    {
+      "key": "storageCondition",
+      "type": "select",
+      "templateOptions": {
+        "label": "Storage Condition",
+        "required": true,
+        "options": [
+          { "label": "Room Temperature", "value": "room_temp" },
+          { "label": "Refrigerated (2-8°C)", "value": "refrigerated" },
+          { "label": "Frozen (-18°C)", "value": "frozen" },
+          { "label": "Cool & Dry Place", "value": "cool_dry" }
+        ],
+        "placeholder": "Select storage condition"
+      },
+      "hideExpression": "!model.productName"
+    },
+    {
+      "key": "shelfLife",
+      "type": "input",
+      "templateOptions": {
+        "label": "Shelf Life (days)",
+        "type": "number",
+        "min": 1,
+        "required": true,
+        "placeholder": "Enter shelf life in days"
+      },
+      "validators": {
+        "validation": ["positiveNumber"]
+      },
+      "hideExpression": "!model.storageCondition"
+    },
+    {
+      "key": "allergens",
+      "type": "input",
+      "templateOptions": {
+        "label": "Allergen Information",
+        "placeholder": "List allergens (e.g., nuts, gluten, dairy)"
+      },
+      "hideExpression": "!model.productName"
+    },
+    {
+      "key": "nutritionalInfo",
+      "type": "input",
+      "templateOptions": {
+        "label": "Calories per Serving",
+        "type": "number",
+        "min": 0,
+        "placeholder": "Enter calories"
+      },
+      "hideExpression": "!model.unitSize"
+    },
+    {
+      "key": "halal",
+      "type": "select",
+      "templateOptions": {
+        "label": "Halal Certification",
+        "options": [
+          { "label": "Yes - Certified", "value": "yes" },
+          { "label": "No", "value": "no" },
+          { "label": "Pending", "value": "pending" }
+        ],
+        "placeholder": "Select halal status"
+      },
+      "hideExpression": "!model.productName"
+    },
+    {
+      "key": "costPrice",
+      "type": "input",
+      "templateOptions": {
+        "label": "Cost Price per Unit",
+        "type": "number",
+        "min": 0,
+        "step": "0.01",
+        "required": true
+      },
+      "validators": {
+        "validation": ["positiveNumber"]
+      },
+      "validation": {
+        "messages": {
+          "required": "Cost price is required"
+        }
+      },
+      "hideExpression": "!model.productType"
+    },
+    {
+      "key": "vatCategory",
+      "type": "select",
+      "templateOptions": {
+        "label": "VAT Category",
+        "options": [],
+        "placeholder": "Select VAT rate"
+      },
+      "hideExpression": "!model.costPrice"
+    }
+  ]
+}
