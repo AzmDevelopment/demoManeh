@@ -1,0 +1,123 @@
+{
+  "certificationId": "CT401_lithium_battery_new",
+  "name": "Lithium Battery - New Certificate Application (CT401)",
+  "description": "Complete workflow for CT401 lithium battery certification",
+  "version": "1.2",
+  "metadata": {
+    "applicableCertificateTypes": [
+      "lithium_battery",
+      "lithium_polymer"
+    ],
+    "estimatedTotalDurationDays": 14,
+    "complexity": "high"
+  },
+  "steps": [
+    {
+      "stepRef": "certificate_specific/CT401_data_entry_step1",
+      "overrides": {
+        "nextStep": "CT401_document_upload_step2",
+        "canSendBack": false
+      }
+    },
+    {
+      "stepRef": "certificate_specific/CT401_document_upload_step2",
+      "overrides": {
+        "nextStep": "conditional_router"
+      }
+    },
+    {
+      "stepRef": "certificate_specific/factory_inspection",
+      "condition": "certificateData.requiresFactoryVisit == true"
+    },
+    {
+      "stepId": "conditional_router",
+      "type": "system_router",
+      "name": "Route Based on Category",
+      "branches": [
+        {
+          "condition": "category == 'industrial'",
+          "nextStep": "technical_evaluation"
+        },
+        {
+          "condition": "category == 'consumer'",
+          "nextStep": "CT401_final_approval"
+        }
+      ]
+    },
+    {
+      "stepRef": "certificate_specific/technical_evaluation",
+      "condition": "category == 'industrial'"
+    },
+    {
+      "stepRef": "shared/CT401_final_approval",
+      "overrides": {
+        "nextStep": "certificate_generation"
+      }
+    },
+    {
+      "stepRef": "system/certificate_generation"
+    }
+  ],
+  "validationConfig": {
+    "ruleLibrary": {
+      "requiredIfCategory": {
+        "ruleType": "requiredIf",
+        "dependentField": "category",
+        "requiredValues": [
+          "CAT001",
+          "CAT003"
+        ],
+        "targetFields": [
+          "productModel"
+        ],
+        "errorMessage": "Product model is required for this category"
+      },
+      "validateFileSize": {
+        "ruleType": "fileUpload",
+        "maxTotalSizeMB": 50,
+        "allowedExtensions": [
+          ".pdf",
+          ".doc",
+          ".docx"
+        ]
+      }
+    }
+  },
+  "slaConfig": {
+    "defaultSLAHours": 48,
+    "stepSLAs": {
+      "CT401_data_entry_step1": 24,
+      "CT401_initial_review": 72,
+      "factory_inspection": 96
+    }
+  },
+  "permissions": {
+    "customer": {
+      "steps": [
+        "CT401_data_entry_step1",
+        "CT401_document_upload_step2"
+      ],
+      "canSendBack": false
+    },
+    "inspector": {
+      "steps": [
+        "CT401_initial_review",
+        "factory_inspection"
+      ],
+      "canSendBack": true
+    },
+    "senior_engineer": {
+      "steps": [
+        "technical_evaluation"
+      ],
+      "canSendBack": true
+    },
+    "manager": {
+      "steps": [
+        "CT401_final_approval"
+      ],
+      "canSendBack": true,
+      "canApprove": true
+    }
+  }
+}

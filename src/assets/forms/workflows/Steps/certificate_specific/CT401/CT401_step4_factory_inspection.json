@@ -1,0 +1,113 @@
+{
+  "stepId": "CT401_step4_factory_inspection",
+  "name": "Factory Inspection",
+  "actor": "inspector",
+  "description": "On-site factory inspection for manufacturing facilities",
+  
+  "fields": [
+    {
+      "key": "visitDate",
+      "type": "date",
+      "templateOptions": {
+        "label": "Visit Date",
+        "required": true
+      }
+    },
+    {
+      "key": "inspectorName",
+      "type": "input",
+      "templateOptions": {
+        "label": "Inspector Name",
+        "required": true,
+        "disabled": true
+      },
+      "expressionProperties": {
+        "model.inspectorName": "formState.currentUser"
+      }
+    },
+    {
+      "key": "factoryCompliance",
+      "type": "radio",
+      "templateOptions": {
+        "label": "Factory Compliance Status",
+        "required": true,
+        "options": [
+          { "value": "compliant", "label": "Compliant" },
+          { "value": "non_compliant", "label": "Non-Compliant" },
+          { "value": "partially_compliant", "label": "Partially Compliant" }
+        ]
+      }
+    },
+    {
+      "key": "keyObservations",
+      "type": "textarea",
+      "templateOptions": {
+        "label": "Key Observations",
+        "rows": 5,
+        "required": true,
+        "placeholder": "Record key observations from the factory visit..."
+      }
+    },
+    {
+      "key": "compliancePhotos",
+      "type": "file",
+      "templateOptions": {
+        "label": "Compliance Photos",
+        "multiple": true,
+        "required": true,
+        "accept": ".jpg,.png,.pdf"
+      }
+    },
+    {
+      "key": "inspectorRecommendation",
+      "type": "radio",
+      "templateOptions": {
+        "label": "Inspector Recommendation",
+        "required": true,
+        "options": [
+          { "value": "pass", "label": "Pass - Continue Process" },
+          { "value": "fail", "label": "Fail - Reject Application" }
+        ]
+      }
+    },
+    {
+      "key": "inspectionDate",
+      "type": "date",
+      "templateOptions": {
+        "label": "Inspection Date",
+        "required": true,
+        "disabled": true
+      },
+      "expressionProperties": {
+        "model.inspectionDate": "new Date().toISOString().split('T')[0]"
+      }
+    }
+  ],
+  
+  "validationRules": [
+    {
+      "ruleId": "validateFactoryCompliance",
+      "type": "required",
+      "targetFields": ["factoryCompliance", "keyObservations", "inspectorRecommendation"],
+      "errorMessage": "All inspection fields are required"
+    }
+  ],
+  
+  "stepConfig": {
+    "canSendBack": true,
+    "sendBackTarget": "CT401_step3_initial_review",
+    "estimatedDurationHours": 48,
+    "nextStep": "CT401_step5_technical_evaluation",
+    "requiredActor": "inspector"
+  },
+  
+  "permissions": {
+    "inspector": {
+      "canEdit": ["factoryCompliance", "keyObservations", "inspectorRecommendation", "compliancePhotos"],
+      "canSendBack": true
+    },
+    "manager": {
+      "canView": ["factoryCompliance", "keyObservations", "inspectorRecommendation"]
+    }
+  }
+}

@@ -1,0 +1,125 @@
+{
+  "stepId": "CT401_step3_initial_review",
+  "name": "Initial Review",
+  "actor": "inspector",
+  "description": "Inspector reviews application documents and submitted information",
+  
+  "fields": [
+    {
+      "key": "applicationSummary",
+      "type": "textarea",
+      "templateOptions": {
+        "label": "Application Summary",
+        "rows": 4,
+        "disabled": true,
+        "placeholder": "Auto-generated from applicant data..."
+      },
+      "expressionProperties": {
+        "model.applicationSummary": "formState.getApplicationSummary()"
+      },
+      "hooks": {
+        "onInit": "loadApplicationSummary"
+      }
+    },
+    {
+      "key": "documentCompliance",
+      "type": "multicheckbox",
+      "templateOptions": {
+        "label": "Document Compliance Checklist",
+        "required": true,
+        "options": [
+          { "value": "technical_specs_complete", "label": "Technical Specifications Complete" },
+          { "value": "test_reports_attached", "label": "Test Reports Attached" },
+          { "value": "manufacturer_cert_valid", "label": "Manufacturer Certificate Valid" },
+          { "value": "safety_data_sheet_included", "label": "Safety Data Sheet Included" }
+        ]
+      }
+    },
+    {
+      "key": "inspectionResult",
+      "type": "radio",
+      "templateOptions": {
+        "label": "Inspection Result",
+        "required": true,
+        "options": [
+          { "value": "pass", "label": "Pass - Proceed to Approval" },
+          { "value": "fail", "label": "Fail - Reject Application" },
+          { "value": "clarification_needed", "label": "Clarification Required" }
+        ]
+      },
+      "hooks": {
+        "onChanges": "onInspectionResultChange"
+      }
+    },
+    {
+      "key": "reviewNotes",
+      "type": "textarea",
+      "templateOptions": {
+        "label": "Inspector Review Notes",
+        "rows": 5,
+        "required": true,
+        "placeholder": "Enter detailed review notes..."
+      }
+    },
+    {
+      "key": "inspectorSignature",
+      "type": "file",
+      "templateOptions": {
+        "label": "Inspector Digital Signature",
+        "required": true,
+        "accept": ".jpg,.png,.pdf"
+      }
+    },
+    {
+      "key": "inspectionDate",
+      "type": "date",
+      "templateOptions": {
+        "label": "Inspection Date",
+        "required": true,
+        "disabled": true
+      },
+      "expressionProperties": {
+        "model.inspectionDate": "new Date().toISOString().split('T')[0]"
+      }
+    }
+  ],
+  
+  "validationRules": [
+    {
+      "ruleId": "validateInspectionComplete",
+      "type": "custom",
+      "executor": "validateInspectionComplete",
+      "errorMessage": "All required fields must be completed"
+    },
+    {
+      "ruleId": "validateDocumentCompliance",
+      "type": "requiredIf",
+      "dependentField": "inspectionResult",
+      "requiredValues": ["pass", "fail"],
+      "targetFields": ["documentCompliance"],
+      "errorMessage": "Document compliance must be verified"
+    }
+  ],
+  
+  "stepConfig": {
+    "canSendBack": true,
+    "sendBackTarget": "CT401_step2_document_upload",
+    "canApprove": true,
+    "nextStep": "CT401_step4_factory_inspection",
+    "estimatedDurationHours": 24,
+    "escalationAfterHours": 48,
+    "requiredActor": "inspector"
+  },
+  
+  "permissions": {
+    "inspector": {
+      "canEdit": ["reviewNotes", "inspectionResult", "documentCompliance"],
+      "canView": ["applicationSummary"],
+      "canSendBack": true
+    },
+    "manager": {
+      "canView": ["reviewNotes", "inspectionResult", "documentCompliance"],
+      "canOverride": true
+    }
+  }
+}
