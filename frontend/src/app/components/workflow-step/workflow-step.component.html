@@ -121,7 +121,60 @@
                   class="form-control"
                   [class.is-invalid]="hasFieldError(field.key)"
                   [rows]="field.templateOptions.rows || 3"
+                  [placeholder]="field.templateOptions.placeholder || ''"
                 ></textarea>
+              }
+
+              <!-- Radio Buttons -->
+              @if (field.type === 'radio') {
+                <div class="radio-group">
+                  @for (option of field.templateOptions.options; track option.value) {
+                    <div class="form-check">
+                      <input
+                        class="form-check-input"
+                        type="radio"
+                        [id]="field.key + '_' + option.value"
+                        [formControlName]="field.key"
+                        [value]="option.value"
+                        [class.is-invalid]="hasFieldError(field.key)"
+                      />
+                      <label class="form-check-label" [for]="field.key + '_' + option.value">
+                        {{ option.label }}
+                      </label>
+                    </div>
+                  }
+                </div>
+              }
+
+              <!-- Multi-Checkbox -->
+              @if (field.type === 'multicheckbox') {
+                <div class="checkbox-group">
+                  @for (option of field.templateOptions.options; track option.value) {
+                    <div class="form-check">
+                      <input
+                        class="form-check-input"
+                        type="checkbox"
+                        [id]="field.key + '_' + option.value"
+                        [value]="option.value"
+                        (change)="onCheckboxChange(field.key, option.value, $event)"
+                      />
+                      <label class="form-check-label" [for]="field.key + '_' + option.value">
+                        {{ option.label }}
+                      </label>
+                    </div>
+                  }
+                </div>
+              }
+
+              <!-- Date Input -->
+              @if (field.type === 'date') {
+                <input
+                  [id]="field.key"
+                  [formControlName]="field.key"
+                  type="date"
+                  class="form-control"
+                  [class.is-invalid]="hasFieldError(field.key)"
+                />
               }
 
               <!-- File Upload -->
@@ -132,6 +185,7 @@
                   class="form-control"
                   [accept]="field.templateOptions.accept"
                   [multiple]="field.templateOptions.multiple"
+                  (change)="onFileChange(field.key, $event)"
                 />
                 <small class="form-text text-muted">
                   @if (field.templateOptions.accept) {
@@ -141,6 +195,13 @@
                     Max size: {{ field.templateOptions.maxFileSize / 1048576 }}MB
                   }
                 </small>
+                @if (getSelectedFileName(field.key)) {
+                  <div class="mt-2">
+                    <small class="text-success">
+                      <i class="bi bi-check-circle"></i> Selected: {{ getSelectedFileName(field.key) }}
+                    </small>
+                  </div>
+                }
               }
 
               <!-- Field Error -->

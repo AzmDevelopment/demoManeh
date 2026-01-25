@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { HttpClientModule } from '@angular/common/http';
@@ -40,11 +40,11 @@ export class CategoryNavigationComponent implements OnInit {
 
   constructor(
     private router: Router,
-    private workflowService: WorkflowService,
-    private cdr: ChangeDetectorRef
+    private workflowService: WorkflowService
   ) {}
 
   ngOnInit(): void {
+    console.log('=== CATEGORY NAVIGATION INIT ===');
     this.loadWorkflowDefinitions();
   }
 
@@ -52,25 +52,43 @@ export class CategoryNavigationComponent implements OnInit {
    * Load workflow definitions from API
    */
   loadWorkflowDefinitions(): void {
+    console.log('=== LOADING WORKFLOW DEFINITIONS ===');
     this.loading = true;
     this.error = null;
-    this.cdr.detectChanges(); // Force change detection
+    this.categories = []; // Clear existing categories
+
+    console.log('Making API call to get workflow definitions...');
 
     this.workflowService.getWorkflowDefinitions().subscribe({
       next: (definitions: WorkflowDefinition[]) => {
+        console.log('=== API SUCCESS ===');
         console.log('Raw API response:', definitions);
+        console.log('Number of definitions:', definitions?.length || 0);
+
+        if (!definitions || definitions.length === 0) {
+          console.warn('No definitions returned from API, using fallback');
+          this.loadFallbackCategories();
+          this.loading = false;
+          return;
+        }
+
         this.categories = this.mapDefinitionsToCategories(definitions);
         console.log('Mapped categories:', this.categories);
+        console.log('Number of categories:', this.categories.length);
         this.loading = false;
-        this.cdr.detectChanges(); // Force change detection after data loads
       },
       error: (err) => {
-        console.error('Error loading workflow definitions:', err);
-        this.error = 'Failed to load workflow categories. Please try again later.';
+        console.error('=== API ERROR ===');
+        console.error('Error object:', err);
+        console.error('Error status:', err?.status);
+        console.error('Error message:', err?.message);
+        console.error('Error error:', err?.error);
+
+        this.error = 'Failed to load workflow categories. Please check if backend is running.';
         this.loading = false;
-        this.cdr.detectChanges(); // Force change detection
-        
+
         // Fallback to hardcoded categories if API fails
+        console.log('Loading fallback categories...');
         this.loadFallbackCategories();
       }
     });
@@ -149,6 +167,13 @@ export class CategoryNavigationComponent implements OnInit {
   }
 
   /**
+   * Retry loading workflow definitions
+   */
+  retry(): void {
+    this.loadWorkflowDefinitions();
+  }
+
+  /**
    * Fallback categories if API fails
    */
   private loadFallbackCategories(): void {
@@ -161,11 +186,11 @@ export class CategoryNavigationComponent implements OnInit {
         formConfigFile: 'workflows/Definitions/CT401_lithium_battery_new'
       },
       {
-        id: 'beauty',
-        name: 'Beauty',
+        id: 'shampoo',
+        name: 'BT501 Shampoo',
         icon: 'bi-stars',
         description: 'Cosmetics and beauty products',
-        formConfigFile: 'workflows/Definitions/BT501_shampoo'
+        formConfigFile: 'workflows/Definitions/BT501_shampoo_new'
       }
     ];
   }
@@ -178,22 +203,21 @@ export class CategoryNavigationComponent implements OnInit {
       // Extract certification ID from formConfigFile
       // e.g., "workflows/Definitions/CT401_lithium_battery_new" -> "CT401_lithium_battery_new"
       const certificationId = category.formConfigFile.split('/').pop() || category.id;
-      
+
       console.log('=== NAVIGATION DEBUG ===');
       console.log('Category clicked:', category.name);
       console.log('Certification ID:', certificationId);
-      
-      // Check if user has an in-progress workflow for this certification
+
+      // ALWAYS check for existing instance first to avoid duplicates
       const existingInstance = await this.checkForExistingInstance(certificationId);
-      
+
       if (existingInstance) {
-        console.log('=== FOUND EXISTING INSTANCE ===');
+        console.log('=== FOUND EXISTING INSTANCE - REUSING ===');
         console.log('Instance ID:', existingInstance.id);
         console.log('Definition ID:', existingInstance.definitionId);
         console.log('Current Step:', existingInstance.currentStep);
         console.log('Status:', existingInstance.status);
-        console.log('Full instance object:', existingInstance);
-        
+
         // Navigate to the current step of existing instance
         this.navigateToCurrentStep(existingInstance);
       } else {
@@ -273,19 +297,15 @@ export class CategoryNavigationComponent implements OnInit {
   private navigateToCurrentStep(instance: any): void {
     const instanceId = instance.id;
     const currentStep = instance.currentStep;
-    
+
     console.log(`=== NAVIGATING TO STEP ===`);
     console.log(`Instance ID: ${instanceId}`);
     console.log(`Current Step: ${currentStep}`);
     console.log(`Full URL: /workflow/${instanceId}/step/${currentStep}`);
-    
-    // Force navigation refresh to ensure component reloads with correct data
-    // First navigate away (without changing displayed URL)
-    this.router.navigateByUrl('/', { skipLocationChange: true }).then(() => {
-      // Then navigate to the correct step
-      this.router.navigate(['/workflow', instanceId, 'step', currentStep]).then(() => {
-        console.log('=== NAVIGATION COMPLETE ===');
-      });
+
+    // Direct navigation without skipLocationChange trick
+    this.router.navigate(['/workflow', instanceId, 'step', currentStep]).then(() => {
+      console.log('=== NAVIGATION COMPLETE ===');
     });
   }
 

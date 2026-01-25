@@ -1,9 +1,9 @@
 {
-  "stepId": "CT401_step4_factory_inspection",
+  "stepId": "CT401_step3_factory_inspection",
   "name": "Factory Inspection",
   "actor": "inspector",
   "description": "On-site factory inspection for manufacturing facilities",
-  
+
   "fields": [
     {
       "key": "visitDate",
@@ -83,7 +83,7 @@
       }
     }
   ],
-  
+
   "validationRules": [
     {
       "ruleId": "validateFactoryCompliance",
@@ -100,7 +100,7 @@
     "nextStep": "CT401_step4_technical_evaluation",
     "requiredActor": "inspector"
   },
-  
+
   "permissions": {
     "inspector": {
       "canEdit": ["factoryCompliance", "keyObservations", "inspectorRecommendation", "compliancePhotos"],

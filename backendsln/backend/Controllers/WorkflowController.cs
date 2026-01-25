@@ -309,7 +309,17 @@ public class WorkflowController : ControllerBase
 
             if (currentStepRef == null)
             {
-                return NotFound(new { message = "Current step reference not found" });
+                _logger.LogError(
+                    "Current step '{CurrentStep}' not found in definition. Available steps: {AvailableSteps}",
+                    instance.CurrentStep,
+                    string.Join(", ", definition.Steps.Select(s => s.StepRef ?? s.StepId))
+                );
+                return NotFound(new {
+                    message = "Current step reference not found",
+                    currentStep = instance.CurrentStep,
+                    availableSteps = definition.Steps.Select(s => s.StepRef ?? s.StepId).ToList(),
+                    hint = "The current step name in the database doesn't match any step in the workflow definition"
+                });
             }
 
             var stepDefinition = await _definitionProvider.GetStepDefinitionAsync(currentStepRef.StepRef);
@@ -350,13 +360,17 @@ public class WorkflowController : ControllerBase
     public async Task<ActionResult<Dictionary<string, object>>> UploadFiles(
         Guid instanceId,
         string stepId,
-        [FromQuery] string uploadedBy,
-        [FromForm] IFormFileCollection files)
+        [FromQuery] string uploadedBy)
     {
         try
         {
+            var files = Request.Form.Files;
+
+            _logger.LogInformation("Upload request received. Files count: {Count}", files?.Count ?? 0);
+
             if (files == null || files.Count == 0)
             {
+                _logger.LogWarning("No files in request. Form keys: {Keys}", string.Join(", ", Request.Form.Keys));
                 return BadRequest(new { message = "No files provided" });
             }
 

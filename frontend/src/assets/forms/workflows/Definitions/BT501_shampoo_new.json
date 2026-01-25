@@ -1,5 +1,5 @@
 {
-  "certificationId": "BT501_shampoo",
+  "certificationId": "BT501_shampoo_new",
   "name": "BT501 Shampoo - Product Certification",
   "description": "Complete 5-step workflow for BT501 shampoo product certification",
   "version": "1.0",
@@ -9,7 +9,7 @@
     "applicableCertificateTypes": ["shampoo", "cosmetic_product"],
     "estimatedTotalDurationDays": 10,
     "complexity": "medium",
-    "requiresLabTesting": true
+    "requiresFactoryVisit": false
   },
 
   "steps": [

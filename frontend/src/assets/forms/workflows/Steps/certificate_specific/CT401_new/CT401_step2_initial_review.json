@@ -1,5 +1,5 @@
 {
-  "stepId": "CT401_step3_initial_review",
+  "stepId": "CT401_step2_initial_review",
   "name": "Initial Review",
   "actor": "inspector",
   "description": "Inspector reviews application documents and submitted information",

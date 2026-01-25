@@ -3,7 +3,7 @@
   "name": "Basic Information - Step 1",
   "actor": "customer",
   "description": "Applicant provides basic company and product details",
-  
+
   "fields": [
     {
       "key": "applicantName",
@@ -26,7 +26,7 @@
       "type": "select",
       "templateOptions": {
         "label": "Product Category",
-        "required": true,
+        "required": false,
         "options": [],
         "loading": true
       },

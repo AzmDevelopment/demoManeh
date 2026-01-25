@@ -74,7 +74,7 @@ export interface CurrentStepResponse {
   providedIn: 'root'
 })
 export class WorkflowService {
-  private apiUrl = 'https://localhost:7047/api/Workflow';
+  private apiUrl = '/api/Workflow';
 
   constructor(private http: HttpClient) { }
 
@@ -155,6 +155,19 @@ export class WorkflowService {
    * Upload files for a workflow step
    */
   uploadFiles(instanceId: string, stepId: string, uploadedBy: string, files: FormData): Observable<any> {
+    console.log('=== WORKFLOW SERVICE: Uploading files ===');
+    console.log('Instance ID:', instanceId);
+    console.log('Step ID:', stepId);
+    console.log('Uploaded By:', uploadedBy);
+    console.log('FormData:', files);
+
+    // Log FormData contents
+    console.log('FormData contents:');
+    (files as any).forEach((value: any, key: string) => {
+      console.log(`  ${key}:`, value instanceof File ? `File(${value.name}, ${value.size} bytes)` : value);
+    });
+
+    // Don't set Content-Type header - browser will set it automatically with boundary
     return this.http.post<any>(
       `${this.apiUrl}/instances/${instanceId}/steps/${stepId}/upload?uploadedBy=${uploadedBy}`,
       files
