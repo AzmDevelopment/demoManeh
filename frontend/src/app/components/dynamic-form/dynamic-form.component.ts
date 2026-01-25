@@ -33,8 +33,7 @@ export class DynamicFormComponent implements OnInit, OnDestroy {
   isLoading = signal(true);
   showAlert = signal<{ type: 'success' | 'error' | 'warning'; message: string } | null>(null);
 
-  // Workflow-specific properties
-  isWorkflow = signal(false);
+  // Workflow properties
   workflowSteps: any[] = [];
   currentStepIndex = signal(0);
   stepFormData: Record<string, any>[] = [];
@@ -87,23 +86,18 @@ export class DynamicFormComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (config: any) => {
-          // Check if this is a workflow definition (has steps array)
+          // Load workflow (all forms are now workflows)
           if (config.steps && Array.isArray(config.steps)) {
-            this.isWorkflow.set(true);
             this.loadWorkflowSteps(config);
           } else {
-            // Regular form
-            this.isWorkflow.set(false);
-            this.formConfig.set(config);
-            this.fields = this.buildFormlyFields(config);
             this.isLoading.set(false);
-            this.loadInitialOptions();
+            this.showAlert.set({ type: 'error', message: 'Invalid workflow configuration. Please check the workflow definition.' });
           }
         },
         error: (err) => {
-          console.error('Failed to load form config:', err);
+          console.error('Failed to load workflow config:', err);
           this.isLoading.set(false);
-          this.showAlert.set({ type: 'error', message: 'Failed to load form configuration. Please refresh the page.' });
+          this.showAlert.set({ type: 'error', message: 'Failed to load workflow configuration. Please refresh the page.' });
         }
       });
   }
@@ -463,45 +457,36 @@ export class DynamicFormComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (this.isWorkflow()) {
-      // Get current step configuration
-      const currentStepConfig = this.workflowSteps[this.currentStepIndex()];
-      const stepId = currentStepConfig?.stepId;
+    // Get current step configuration
+    const currentStepConfig = this.workflowSteps[this.currentStepIndex()];
+    const stepId = currentStepConfig?.stepId;
 
-      // Save current step data
-      this.stepFormData[this.currentStepIndex()] = { ...this.cleanModel };
+    // Save current step data
+    this.stepFormData[this.currentStepIndex()] = { ...this.cleanModel };
 
-      // Prepare data object with stepId on top
-      const stepDataWithId = {
-        stepId: stepId,
-        ...this.cleanModel
-      };
+    // Prepare data object with stepId on top
+    const stepDataWithId = {
+      stepId: stepId,
+      ...this.cleanModel
+    };
 
-      // Console the data for current step
-      console.log('Step Data:', stepDataWithId);
+    // Console the data for current step
+    console.log('Step Data:', stepDataWithId);
 
-      // Check if this is the last step
-      if (this.currentStepIndex() === this.workflowSteps.length - 1) {
-        // Final submission
-        console.log('Workflow completed! All data:', this.stepFormData);
-        this.showAlert.set({ type: 'success', message: 'Workflow completed successfully! Certificate application submitted.' });
-        setTimeout(() => {
-          this.router.navigate(['/']);
-        }, 3000);
-      } else {
-        // Move to next step
-        this.currentStepIndex.set(this.currentStepIndex() + 1);
-        this.loadCurrentWorkflowStep();
-        this.showAlert.set(null);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-    } else {
-      // Regular form submission
-      console.log('Form Data:', this.cleanModel);
-      this.showAlert.set({ type: 'success', message: 'Form submitted successfully! Data has been saved.' });
+    // Check if this is the last step
+    if (this.currentStepIndex() === this.workflowSteps.length - 1) {
+      // Final submission
+      console.log('Workflow completed! All data:', this.stepFormData);
+      this.showAlert.set({ type: 'success', message: 'Workflow completed successfully! Certificate application submitted.' });
       setTimeout(() => {
-        if (this.showAlert()?.type === 'success') this.showAlert.set(null);
-      }, 5000);
+        this.router.navigate(['/']);
+      }, 3000);
+    } else {
+      // Move to next step
+      this.currentStepIndex.set(this.currentStepIndex() + 1);
+      this.loadCurrentWorkflowStep();
+      this.showAlert.set(null);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }
 
@@ -517,20 +502,6 @@ export class DynamicFormComponent implements OnInit, OnDestroy {
     }
   }
 
-  resetForm(): void {
-    this.form.reset();
-    this.model = {};
-    this.showAlert.set(null);
-
-    // Reset all select fields dynamically
-    this.fields.forEach((field, index) => {
-      if (index > 0 && field.type === 'select') {
-        field.props!.options = [];
-        field.props!.disabled = true;
-        field.props!.placeholder = `Select ${this.fields[0].props?.label?.toLowerCase() || 'option'} first`;
-      }
-    });
-  }
 
   dismissAlert(): void {
     this.showAlert.set(null);
