@@ -24,7 +24,7 @@ export class CategoryNavigationComponent {
       name: 'Lithium Battery',
       icon: 'bi-battery-charging',
       description: 'Battery products and components',
-      formConfigFile: 'lithium-battery-local'
+      formConfigFile: 'workflows/Definitions/CT401_lithium_battery_new'
     },
     {
       id: 'cement',

@@ -4,8 +4,9 @@ import { ReactiveFormsModule, FormGroup } from '@angular/forms';
 import { FormlyModule, FormlyFieldConfig } from '@ngx-formly/core';
 import { FormlyBootstrapModule } from '@ngx-formly/bootstrap';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, takeUntil, forkJoin, switchMap, Observable } from 'rxjs';
 import { FormConfigService, FormConfig, FormFieldOption } from '../../services/form-config.service';
+import { HttpClient } from '@angular/common/http';
 
 @Component({
   selector: 'app-dynamic-form',
@@ -16,6 +17,7 @@ import { FormConfigService, FormConfig, FormFieldOption } from '../../services/f
 })
 export class DynamicFormComponent implements OnInit, OnDestroy {
   private formConfigService = inject(FormConfigService);
+  private http = inject(HttpClient);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private destroy$ = new Subject<void>();
@@ -30,6 +32,12 @@ export class DynamicFormComponent implements OnInit, OnDestroy {
   formConfig = signal<FormConfig | null>(null);
   isLoading = signal(true);
   showAlert = signal<{ type: 'success' | 'error' | 'warning'; message: string } | null>(null);
+
+  // Workflow-specific properties
+  isWorkflow = signal(false);
+  workflowSteps: any[] = [];
+  currentStepIndex = signal(0);
+  stepFormData: Record<string, any>[] = [];
 
   ngOnInit(): void {
     // Subscribe to route params to handle dynamic form loading
@@ -78,11 +86,19 @@ export class DynamicFormComponent implements OnInit, OnDestroy {
     this.formConfigService.loadFormConfig(this.formId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (config) => {
-          this.formConfig.set(config);
-          this.fields = this.buildFormlyFields(config);
-          this.isLoading.set(false);
-          this.loadInitialOptions();
+        next: (config: any) => {
+          // Check if this is a workflow definition (has steps array)
+          if (config.steps && Array.isArray(config.steps)) {
+            this.isWorkflow.set(true);
+            this.loadWorkflowSteps(config);
+          } else {
+            // Regular form
+            this.isWorkflow.set(false);
+            this.formConfig.set(config);
+            this.fields = this.buildFormlyFields(config);
+            this.isLoading.set(false);
+            this.loadInitialOptions();
+          }
         },
         error: (err) => {
           console.error('Failed to load form config:', err);
@@ -90,6 +106,55 @@ export class DynamicFormComponent implements OnInit, OnDestroy {
           this.showAlert.set({ type: 'error', message: 'Failed to load form configuration. Please refresh the page.' });
         }
       });
+  }
+
+  private loadWorkflowSteps(workflowDef: any): void {
+    // Filter steps with stepRef (exclude system steps like "completed")
+    const formSteps = workflowDef.steps.filter((step: any) => step.stepRef);
+
+    if (formSteps.length === 0) {
+      this.isLoading.set(false);
+      this.showAlert.set({ type: 'error', message: 'No form steps found in workflow.' });
+      return;
+    }
+
+    // Load all step configurations
+    const stepRequests: Observable<any>[] = formSteps.map((step: any) =>
+      this.http.get<any>(`assets/forms/${step.stepRef}.json`)
+    );
+
+    forkJoin(stepRequests)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (steps: any[]) => {
+          this.workflowSteps = steps;
+          this.stepFormData = new Array(steps.length).fill({}).map(() => ({}));
+          this.currentStepIndex.set(0);
+          this.loadCurrentWorkflowStep();
+          this.isLoading.set(false);
+        },
+        error: (err: any) => {
+          console.error('Failed to load workflow steps:', err);
+          this.isLoading.set(false);
+          this.showAlert.set({ type: 'error', message: 'Failed to load workflow steps. Please check the console.' });
+        }
+      });
+  }
+
+  private loadCurrentWorkflowStep(): void {
+    const stepIndex = this.currentStepIndex();
+    if (stepIndex < 0 || stepIndex >= this.workflowSteps.length) return;
+
+    const stepConfig = this.workflowSteps[stepIndex];
+    this.formConfig.set(stepConfig);
+    this.fields = this.buildFormlyFields(stepConfig);
+
+    // Load saved data for this step
+    this.model = { ...this.stepFormData[stepIndex] };
+
+    // Reset form
+    this.form = new FormGroup({});
+    this.loadInitialOptions();
   }
 
   private buildFormlyFields(config: FormConfig): FormlyFieldConfig[] {
@@ -247,15 +312,19 @@ export class DynamicFormComponent implements OnInit, OnDestroy {
 
     formlyField.props!.placeholder = 'Loading...';
 
-    if (hookName === 'loadLocalCategories') {
+    if (hookName === 'loadLocalCategories' || hookName === 'loadBatteryCategories') {
       this.formConfigService.getCategories()
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: (options) => {
             formlyField.props!.options = options;
             formlyField.props!.placeholder = `Select ${formlyField.props!.label?.toLowerCase() || 'option'}`;
+            formlyField.props!['loading'] = false;
           },
-          error: () => formlyField.props!.placeholder = 'Failed to load options'
+          error: () => {
+            formlyField.props!.placeholder = 'Failed to load options';
+            formlyField.props!['loading'] = false;
+          }
         });
     }
   }
@@ -325,14 +394,49 @@ export class DynamicFormComponent implements OnInit, OnDestroy {
   onSubmit(): void {
     this.form.markAllAsTouched();
 
-    if (this.form.valid) {
+    if (!this.form.valid) {
+      this.showAlert.set({ type: 'error', message: 'Please fill in all required fields correctly before submitting.' });
+      return;
+    }
+
+    if (this.isWorkflow()) {
+      // Save current step data
+      this.stepFormData[this.currentStepIndex()] = { ...this.cleanModel };
+
+      // Check if this is the last step
+      if (this.currentStepIndex() === this.workflowSteps.length - 1) {
+        // Final submission
+        console.log('Workflow completed! All data:', this.stepFormData);
+        this.showAlert.set({ type: 'success', message: 'Workflow completed successfully! Certificate application submitted.' });
+        setTimeout(() => {
+          this.router.navigate(['/']);
+        }, 3000);
+      } else {
+        // Move to next step
+        this.currentStepIndex.set(this.currentStepIndex() + 1);
+        this.loadCurrentWorkflowStep();
+        this.showAlert.set(null);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    } else {
+      // Regular form submission
       console.log('Form Data:', this.cleanModel);
       this.showAlert.set({ type: 'success', message: 'Form submitted successfully! Data has been saved.' });
       setTimeout(() => {
         if (this.showAlert()?.type === 'success') this.showAlert.set(null);
       }, 5000);
-    } else {
-      this.showAlert.set({ type: 'error', message: 'Please fill in all required fields correctly before submitting.' });
+    }
+  }
+
+  onPreviousStep(): void {
+    if (this.currentStepIndex() > 0) {
+      // Save current step data before going back
+      this.stepFormData[this.currentStepIndex()] = { ...this.cleanModel };
+
+      this.currentStepIndex.set(this.currentStepIndex() - 1);
+      this.loadCurrentWorkflowStep();
+      this.showAlert.set(null);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }
 

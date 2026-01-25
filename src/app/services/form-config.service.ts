@@ -20,7 +20,8 @@ export interface FormField {
 
 export interface FormConfig {
   certificationId: string;
-  title: string;
+  title?: string;
+  name?: string;
   fields: FormField[];
 }
 
