@@ -20,13 +20,23 @@
     },
 
     {
+      "key": "brandTable",
+      "type": "table",
+      "templateOptions": {
+        "label": "Brand Summary",
+        "columns": ["nameEn", "nameAr", "fileCount", "source"]
+      }
+    },
+
+    {
       "key": "newBrand",
       "type": "repeat",
       "templateOptions": {
         "label": "Add New Brands",
         "addText": "➕ Add New Brand",
         "removeText": "❌ Remove",
-        "saveText": "✓ Save Brand"
+        "saveText": "✓ Save Brand",
+        "addButtonPosition": "top-right"
       },
       "fieldArray": {
         "fieldGroup": [
@@ -59,15 +69,6 @@
             }
           }
         ]
-      }
-    },
-
-    {
-      "key": "brandTable",
-      "type": "table",
-      "templateOptions": {
-        "label": "Brand Summary",
-        "columns": ["nameEn", "nameAr", "fileCount", "source"]
       }
     }
   ],

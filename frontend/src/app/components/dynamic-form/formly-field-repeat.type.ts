@@ -1,15 +1,24 @@
-import { Component } from '@angular/core';
+import { Component, AfterViewInit } from '@angular/core';
 import { FieldArrayType, FormlyModule } from '@ngx-formly/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
 
 @Component({
-  selector: 'formly-field-repeat',
+  selector: 'formly-field-repeat',  
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, FormlyModule],
   template: `
     <div class="repeat-section mb-3">
-      <label *ngIf="props.label" class="form-label fw-bold">{{ props.label }}</label>
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <label *ngIf="props.label" class="form-label fw-bold mb-0">{{ props.label }}</label>
+        <button 
+          *ngIf="props['addButtonPosition'] === 'top-right'" 
+          type="button" 
+          class="btn btn-outline-primary" 
+          (click)="addNew()">
+          {{ props['addText'] || '➕ Add' }}
+        </button>
+      </div>
 
       <div *ngFor="let field of field.fieldGroup; let i = index" class="card mb-2">
         <!-- Collapsed View (when saved) -->
@@ -54,13 +63,17 @@ import { ReactiveFormsModule } from '@angular/forms';
         </div>
       </div>
 
-      <button type="button" class="btn btn-outline-primary" (click)="addNew()">
+      <button 
+        *ngIf="props['addButtonPosition'] !== 'top-right'" 
+        type="button" 
+        class="btn btn-outline-primary" 
+        (click)="addNew()">
         {{ props['addText'] || '➕ Add' }}
       </button>
     </div>
   `,
 })
-export class FormlyFieldRepeat extends FieldArrayType {
+export class FormlyFieldRepeat extends FieldArrayType implements AfterViewInit {
   savedItems: boolean[] = [];
 
   override add(i?: number, initialModel?: any, opts?: { markAsDirty: boolean }): void {
@@ -118,5 +131,15 @@ export class FormlyFieldRepeat extends FieldArrayType {
     const model = this.model?.[index];
     if (!model) return '';
     return model['brandNameAr'] || '';
+  }
+
+  ngAfterViewInit() {
+    // Listen for add brand button clicks
+    const addButton = document.querySelector('.add-brand-trigger');
+    if (addButton) {
+      addButton.addEventListener('click', () => {
+        this.addNew();
+      });
+    }
   }
 }
