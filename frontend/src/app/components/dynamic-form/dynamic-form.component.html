@@ -69,7 +69,7 @@
             [form]="form"
             [fields]="fields"
             [model]="model"
-            (modelChange)="model = $event"
+            (modelChange)="onModelChange($event)"
           ></formly-form>
 
           <hr class="my-4">

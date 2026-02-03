@@ -4,10 +4,17 @@ import { DynamicFormComponent } from './components/dynamic-form/dynamic-form.com
 import { WorkflowStepComponent } from './components/workflow-step/workflow-step.component';
 
 export const routes: Routes = [
+
   {
     path: '',
     component: CategoryNavigationComponent,
     title: 'Select Category'
+  },
+
+  {
+    path: 'workflow/:workflowId',
+    component: DynamicFormComponent,
+    title: 'Workflow Form'
   },
   {
     path: 'form/:formId',
@@ -15,12 +22,12 @@ export const routes: Routes = [
     title: 'Product Form'
   },
   {
-    path: 'workflow/:instanceId/step/:stepId',
+    path: 'workflow-step/:instanceId/step/:stepId',
     component: WorkflowStepComponent,
     title: 'Workflow Step'
   },
   {
-    path: 'workflow/:instanceId/completed',
+    path: 'workflow-step/:instanceId/completed',
     component: WorkflowStepComponent,
     title: 'Workflow Completed'
   },

@@ -1,0 +1,68 @@
+{
+  "certificationId": "SASO_demo_brand_product",
+  "name": "SASO Demo - Brand & Product Registration",
+  "description": "Two-step workflow for brand and product registration with classifications, measurements, and models",
+  "version": "1.0",
+
+  "metadata": {
+    "workflowCode": "SASO_DEMO",
+    "applicableCertificateTypes": ["type1", "type2", "type3"],
+    "estimatedTotalDurationDays": 3,
+    "complexity": "medium",
+    "requiresFactoryVisit": false
+  },
+
+  "steps": [
+    {
+      "stepRef": "workflows/Steps/certificate_specific/SASO_demo/SASO_demo_step1_brands",
+      "overrides": {
+        "nextStep": "SASO_demo_step2_products"
+      }
+    },
+    {
+      "stepRef": "workflows/Steps/certificate_specific/SASO_demo/SASO_demo_step2_products",
+      "overrides": {
+        "nextStep": "completed"
+      }
+    },
+    {
+      "stepId": "completed",
+      "name": "Application Submitted",
+      "actor": "system",
+      "type": "system_action",
+      "systemAction": "submitApplication",
+      "status": "completed"
+    }
+  ],
+
+  "workflowConfig": {
+    "isLinear": true,
+    "allowParallelExecution": false,
+    "requiresApprovalAtEachStep": false,
+    "autoEscalationEnabled": false
+  },
+
+  "slaConfig": {
+    "totalSLADays": 3,
+    "stepSLAs": {
+      "SASO_demo_step1_brands": 24,
+      "SASO_demo_step2_products": 48
+    }
+  },
+
+  "notifications": {
+    "onStepComplete": true,
+    "onWorkflowComplete": true,
+    "onSendBack": false,
+    "recipients": ["applicant"]
+  },
+
+  "permissions": {
+    "customer": {
+      "canStartWorkflow": true,
+      "canEditSteps": ["SASO_demo_step1_brands", "SASO_demo_step2_products"],
+      "canSendBack": false,
+      "canCancel": true
+    }
+  }
+}

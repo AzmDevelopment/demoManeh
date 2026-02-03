@@ -7,7 +7,12 @@
       "Bash(findstr:*)",
       "Bash(taskkill:*)",
       "Bash(cmd //c:*)",
-      "Bash(sqlcmd:*)"
+      "Bash(sqlcmd:*)",
+      "Bash(ls -la \"e:\\\\Abraj\\\\demoManeh\\\\frontend\\\\src\\\\assets\\\\forms\\\\workflows\\\\Steps\\\\certificate_specific\\\\SASO_demo\"\" 2>/dev/null || dir /b \"e:AbrajdemoManehfrontendsrcassetsformsworkflowsStepscertificate_specificSASO_demo\" 2>nul || echo \"Directory does not exist or is empty \")",
+      "Bash(dir:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx ng build:*)"
     ],
     "deny": [],
     "ask": []

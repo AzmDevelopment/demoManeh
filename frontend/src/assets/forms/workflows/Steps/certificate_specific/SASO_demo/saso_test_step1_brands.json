@@ -1,0 +1,79 @@
+{
+  "stepId": "saso_test_step1_brands",
+  "name": "Brand Management",
+  "actor": "customer",
+  "description": "Select existing brands or add new ones with attachments",
+
+  "fields": [
+    {
+      "key": "selectedBrand",
+      "type": "select",
+      "templateOptions": {
+        "label": "Select Existing Brand",
+        "placeholder": "Choose a brand...",
+        "required": false,
+        "options": []
+      },
+      "hooks": {
+        "onInit": "loadBrands"
+      }
+    },
+
+    {
+      "key": "newBrand",
+      "type": "repeat",
+      "templateOptions": {
+        "label": "Add New Brands",
+        "addText": "➕ Add New Brand",
+        "removeText": "❌ Remove",
+        "saveText": "✓ Save Brand"
+      },
+      "fieldArray": {
+        "fieldGroup": [
+          {
+            "key": "brandNameEn",
+            "type": "input",
+            "templateOptions": {
+              "label": "Brand Name (English)",
+              "placeholder": "Enter brand name in English",
+              "required": true
+            }
+          },
+          {
+            "key": "brandNameAr",
+            "type": "input",
+            "templateOptions": {
+              "label": "Brand Name (Arabic)",
+              "placeholder": "أدخل اسم العلامة التجارية بالعربية",
+              "required": true
+            }
+          },
+          {
+            "key": "attachments",
+            "type": "file",
+            "templateOptions": {
+              "label": "Brand Attachments",
+              "multiple": true,
+              "required": false,
+              "accept": ".pdf,.jpg,.png,.doc,.docx"
+            }
+          }
+        ]
+      }
+    },
+
+    {
+      "key": "brandTable",
+      "type": "table",
+      "templateOptions": {
+        "label": "Brand Summary"
+      }
+    }
+  ],
+
+  "stepConfig": {
+    "canSendBack": false,
+    "nextStep": "saso_test_step2_products",
+    "estimatedDurationHours": 24
+  }
+}

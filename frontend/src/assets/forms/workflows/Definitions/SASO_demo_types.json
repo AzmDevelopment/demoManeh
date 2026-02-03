@@ -1,0 +1,40 @@
+{
+  "types": [
+    {
+      "id": "type1",
+      "name": "Type 1 - Standard Product Registration",
+      "nameAr": "النوع 1 - تسجيل المنتج القياسي",
+      "icon": "bi-box-seam",
+      "description": "Standard product registration with basic compliance requirements. Suitable for low-risk consumer products.",
+      "descriptionAr": "تسجيل المنتج القياسي مع متطلبات الامتثال الأساسية. مناسب للمنتجات الاستهلاكية منخفضة المخاطر.",
+      "workflowDefinition": "SASO_demo_brand_product"
+    },
+    {
+      "id": "type2",
+      "name": "Type 2 - Enhanced Product Certification",
+      "nameAr": "النوع 2 - شهادة المنتج المحسنة",
+      "icon": "bi-award",
+      "description": "Enhanced certification process with additional testing and quality assurance checks. Required for medium-risk products.",
+      "descriptionAr": "عملية شهادة محسنة مع اختبارات إضافية وفحوصات ضمان الجودة. مطلوبة للمنتجات متوسطة المخاطر.",
+      "workflowDefinition": "SASO_demo_brand_product"
+    },
+    {
+      "id": "type3",
+      "name": "Type 3 - Premium Product Approval",
+      "nameAr": "النوع 3 - الموافقة على المنتج المميز",
+      "icon": "bi-shield-check",
+      "description": "Comprehensive approval process with full technical evaluation and factory inspection. Required for high-risk and regulated products.",
+      "descriptionAr": "عملية موافقة شاملة مع تقييم تقني كامل وتفتيش المصنع. مطلوبة للمنتجات عالية المخاطر والمنظمة.",
+      "workflowDefinition": "SASO_demo_brand_product"
+    },
+    {
+      "id": "test_type",
+      "name": "SASO Test - Brand & Product Workflow",
+      "nameAr": "اختبار SASO - سير عمل العلامة التجارية والمنتج",
+      "icon": "bi-clipboard-check",
+      "description": "Test workflow for brand and product registration with classifications, measurements, and models.",
+      "descriptionAr": "سير عمل اختباري لتسجيل العلامة التجارية والمنتج مع التصنيفات والقياسات والنماذج.",
+      "workflowDefinition": "saso_test_file"
+    }
+  ]
+}

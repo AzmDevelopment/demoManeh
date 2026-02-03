@@ -5,7 +5,7 @@ import { FormlyModule, FormlyFieldConfig } from '@ngx-formly/core';
 import { FormlyBootstrapModule } from '@ngx-formly/bootstrap';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil, forkJoin, switchMap, Observable } from 'rxjs';
-import { FormConfigService, FormConfig, FormFieldOption } from '../../services/form-config.service';
+import { FormConfigService, FormConfig, FormFieldOption, Brand } from '../../services/form-config.service';
 import { HttpClient } from '@angular/common/http';
 
 @Component({
@@ -25,6 +25,7 @@ export class DynamicFormComponent implements OnInit, OnDestroy {
   private optionsCache: Record<string, Record<string, FormFieldOption[]>> = {};
 
   formId: string = 'lithium-battery-local';
+  workflowId: string | null = null;
 
   form = new FormGroup({});
   model: Record<string, any> = {};
@@ -38,12 +39,19 @@ export class DynamicFormComponent implements OnInit, OnDestroy {
   currentStepIndex = signal(0);
   stepFormData: Record<string, any>[] = [];
 
+  // Brand data storage for table building
+  private loadedBrands: Brand[] = [];
+
   ngOnInit(): void {
     // Subscribe to route params to handle dynamic form loading
     this.route.params
       .pipe(takeUntil(this.destroy$))
       .subscribe(params => {
-        if (params['formId']) {
+        if (params['workflowId']) {
+          // Load workflow from workflows/Definitions folder
+          this.workflowId = params['workflowId'];
+          this.resetAndLoadWorkflow();
+        } else if (params['formId']) {
           this.formId = params['formId'];
           this.resetAndLoadForm();
         } else {
@@ -65,6 +73,46 @@ export class DynamicFormComponent implements OnInit, OnDestroy {
 
     // Load new form config
     this.loadFormConfig();
+  }
+
+  // Reset form state and load workflow definition
+  private resetAndLoadWorkflow(): void {
+    // Reset all form state
+    this.form = new FormGroup({});
+    this.model = {};
+    this.fields = [];
+    this.optionsCache = {};
+    this.formConfig.set(null);
+    this.isLoading.set(true);
+    this.showAlert.set(null);
+    this.workflowSteps = [];
+    this.stepFormData = [];
+    this.currentStepIndex.set(0);
+
+    // Load workflow definition
+    this.loadWorkflowConfig();
+  }
+
+  private loadWorkflowConfig(): void {
+    if (!this.workflowId) return;
+
+    this.formConfigService.loadWorkflowDefinition(this.workflowId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (config: any) => {
+          if (config.steps && Array.isArray(config.steps)) {
+            this.loadWorkflowSteps(config);
+          } else {
+            this.isLoading.set(false);
+            this.showAlert.set({ type: 'error', message: 'Invalid workflow configuration. Please check the workflow definition.' });
+          }
+        },
+        error: (err) => {
+          console.error('Failed to load workflow config:', err);
+          this.isLoading.set(false);
+          this.showAlert.set({ type: 'error', message: 'Failed to load workflow configuration. Please refresh the page.' });
+        }
+      });
   }
 
   // Navigate back to category selection
@@ -186,6 +234,18 @@ export class DynamicFormComponent implements OnInit, OnDestroy {
       case 'date':
         formlyType = 'input';
         break;
+      case 'button':
+        formlyType = 'button';
+        break;
+      case 'repeat':
+        formlyType = 'repeat';
+        break;
+      case 'table':
+        formlyType = 'table';
+        break;
+      case 'html':
+        formlyType = 'html';
+        break;
       default:
         formlyType = 'input';
     }
@@ -240,6 +300,36 @@ export class DynamicFormComponent implements OnInit, OnDestroy {
     if (field.type === 'radio' || field.type === 'multicheckbox') {
       if (field.templateOptions.options) {
         formlyField.props!.options = field.templateOptions.options;
+      }
+    }
+
+    // Handle button type
+    if (field.type === 'button') {
+      formlyField.props!['text'] = field.templateOptions.text || field.templateOptions.label;
+      formlyField.props!['onClick'] = field.templateOptions.onClick;
+    }
+
+    // Handle repeat type (fieldArray)
+    if (field.type === 'repeat' && field.fieldArray) {
+      formlyField.props!['addText'] = field.templateOptions.addText;
+      formlyField.props!['removeText'] = field.templateOptions.removeText;
+      formlyField.fieldArray = {
+        fieldGroup: field.fieldArray.fieldGroup?.map((f: any) => this.convertToFormlyField(f)) || []
+      };
+    }
+
+    // Handle table type
+    if (field.type === 'table') {
+      formlyField.props!['columns'] = field.templateOptions.columns;
+      if (field.expressionProperties?.template) {
+        formlyField.props!['template'] = field.expressionProperties.template;
+      }
+    }
+
+    // Handle html type
+    if (field.type === 'html') {
+      if (field.expressionProperties?.template) {
+        formlyField.props!['template'] = field.expressionProperties.template;
       }
     }
 
@@ -381,6 +471,53 @@ export class DynamicFormComponent implements OnInit, OnDestroy {
           },
           error: () => {
             formlyField.props!.placeholder = 'Failed to load options';
+            formlyField.props!['loading'] = false;
+          }
+        });
+    } else if (hookName === 'loadBrands' || hookName === 'loadSelectedBrands') {
+      // Load both options and full brand data
+      this.formConfigService.getBrands()
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (options) => {
+            formlyField.props!.options = options;
+            formlyField.props!.placeholder = `Select ${formlyField.props!.label?.toLowerCase() || 'brand'}`;
+            formlyField.props!['loading'] = false;
+          },
+          error: () => {
+            formlyField.props!.placeholder = 'Failed to load brands';
+            formlyField.props!['loading'] = false;
+          }
+        });
+      // Also load full brand data for table display
+      this.formConfigService.getBrandsFullData()
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(brands => this.loadedBrands = brands);
+    } else if (hookName === 'loadSectors') {
+      this.formConfigService.getSectors()
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (options) => {
+            formlyField.props!.options = options;
+            formlyField.props!.placeholder = `Select ${formlyField.props!.label?.toLowerCase() || 'sector'}`;
+            formlyField.props!['loading'] = false;
+          },
+          error: () => {
+            formlyField.props!.placeholder = 'Failed to load sectors';
+            formlyField.props!['loading'] = false;
+          }
+        });
+    } else if (hookName === 'loadClassifications') {
+      this.formConfigService.getClassifications()
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (options) => {
+            formlyField.props!.options = options;
+            formlyField.props!.placeholder = `Select ${formlyField.props!.label?.toLowerCase() || 'classification'}`;
+            formlyField.props!['loading'] = false;
+          },
+          error: () => {
+            formlyField.props!.placeholder = 'Failed to load classifications';
             formlyField.props!['loading'] = false;
           }
         });
@@ -529,5 +666,55 @@ export class DynamicFormComponent implements OnInit, OnDestroy {
       }
     }
     return clean;
+  }
+
+  // Build brand table from selected brand and new brands
+  buildBrandTable(): void {
+    const tableData: any[] = [];
+
+    // Add selected brand from dropdown
+    if (this.model['selectedBrand']) {
+      const brand = this.loadedBrands.find(b => b.id === this.model['selectedBrand']);
+      if (brand) {
+        tableData.push({
+          nameEn: brand.nameEn,
+          nameAr: brand.nameAr,
+          fileCount: brand.attachments?.length || 0,
+          source: 'Existing'
+        });
+      }
+    }
+
+    // Add new brands from repeat field
+    if (this.model['newBrand'] && Array.isArray(this.model['newBrand'])) {
+      this.model['newBrand'].forEach((newBrand: any) => {
+        if (newBrand.brandNameEn || newBrand.brandNameAr) {
+          tableData.push({
+            nameEn: newBrand.brandNameEn || '',
+            nameAr: newBrand.brandNameAr || '',
+            fileCount: newBrand.attachments?.length || 0,
+            source: 'New'
+          });
+        }
+      });
+    }
+
+    // Update the brandTable field
+    this.model['brandTable'] = tableData;
+
+    // Update the table field's value
+    const tableField = this.fields.find(f => f.key === 'brandTable');
+    if (tableField && tableField.formControl) {
+      tableField.formControl.setValue(tableData);
+    }
+  }
+
+  // Called when model changes to update dependent data
+  onModelChange(model: Record<string, any>): void {
+    this.model = model;
+    // Check if we have brand-related fields and update the table
+    if (this.fields.some(f => f.key === 'brandTable')) {
+      this.buildBrandTable();
+    }
   }
 }

@@ -1,0 +1,139 @@
+{
+  "stepId": "saso_test_step2_products",
+  "name": "Product Management",
+  "actor": "customer",
+  "description": "Add products with brand, sector, classification, measurements, and models",
+  "fields": [
+    {
+      "key": "existingProduct",
+      "type": "select",
+      "templateOptions": {
+        "label": "Select Existing Product",
+        "placeholder": "Choose a product to add...",
+        "required": false
+      },
+      "hooks": {
+        "onInit": "loadProducts"
+      }
+    },
+    {
+      "key": "productBrandId",
+      "type": "select",
+      "templateOptions": {
+        "label": "Brand",
+        "placeholder": "Choose brand...",
+        "required": true
+      },
+      "hooks": {
+        "onInit": "loadSelectedBrands"
+      },
+      "showInForm": "addProduct"
+    },
+    {
+      "key": "sectorId",
+      "type": "select",
+      "templateOptions": {
+        "label": "Sector",
+        "placeholder": "Choose sector...",
+        "required": true
+      },
+      "hooks": {
+        "onInit": "loadSectors"
+      },
+      "showInForm": "addProduct"
+    },
+    {
+      "key": "classificationId",
+      "type": "select",
+      "templateOptions": {
+        "label": "Classification",
+        "placeholder": "Choose classification...",
+        "required": true
+      },
+      "hooks": {
+        "onInit": "loadClassifications"
+      },
+      "showInForm": "addProduct"
+    },
+    {
+      "key": "hasMeasurement",
+      "type": "radio",
+      "templateOptions": {
+        "label": "Does this classification have measurements?",
+        "required": false,
+        "options": [
+          { "value": "yes", "label": "Yes" },
+          { "value": "no", "label": "No" }
+        ]
+      },
+      "defaultValue": "no",
+      "showInForm": "addProduct",
+      "showWhen": "classificationId"
+    },
+    {
+      "key": "measurementName",
+      "type": "input",
+      "templateOptions": {
+        "label": "Measurement Name",
+        "placeholder": "e.g., Length, Width, Weight",
+        "required": false
+      },
+      "showInForm": "addProduct",
+      "showWhen": "hasMeasurementYes"
+    },
+    {
+      "key": "measurementUnit",
+      "type": "input",
+      "templateOptions": {
+        "label": "Measurement Unit",
+        "placeholder": "e.g., mm, cm, kg",
+        "required": false
+      },
+      "showInForm": "addProduct",
+      "showWhen": "hasMeasurementYes"
+    },
+    {
+      "key": "modelName",
+      "type": "input",
+      "templateOptions": {
+        "label": "Model Name",
+        "placeholder": "Enter model name",
+        "required": false
+      },
+      "showInForm": "addProduct",
+      "showWhen": "classificationId"
+    },
+    {
+      "key": "modelNumber",
+      "type": "input",
+      "templateOptions": {
+        "label": "Model Number",
+        "placeholder": "Enter model number",
+        "required": false
+      },
+      "showInForm": "addProduct",
+      "showWhen": "classificationId"
+    },
+    {
+      "key": "barcode",
+      "type": "input",
+      "templateOptions": {
+        "label": "Barcode",
+        "placeholder": "Enter barcode",
+        "required": false
+      },
+      "showInForm": "addProduct",
+      "showWhen": "classificationId"
+    }
+  ],
+  "stepConfig": {
+    "canSendBack": false,
+    "nextStep": "completed",
+    "estimatedDurationHours": 48,
+    "validation": {
+      "type": "products",
+      "minRequired": 1,
+      "message": "Please add at least one product to submit"
+    }
+  }
+}
