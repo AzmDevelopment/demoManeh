@@ -685,14 +685,24 @@ export class DynamicFormComponent implements OnInit, OnDestroy {
       }
     }
 
-    // Add new brands from repeat field
+    // Add new brands from repeat field (only saved ones with _saved flag)
     if (this.model['newBrand'] && Array.isArray(this.model['newBrand'])) {
       this.model['newBrand'].forEach((newBrand: any) => {
-        if (newBrand.brandNameEn || newBrand.brandNameAr) {
+        // Only include brands that have been saved (have _saved flag)
+        if (newBrand._saved && (newBrand.brandNameEn || newBrand.brandNameAr)) {
+          // Count attachments - handle both array and single file formats
+          let fileCount = 0;
+          if (newBrand.attachments) {
+            if (Array.isArray(newBrand.attachments)) {
+              fileCount = newBrand.attachments.length;
+            } else if (newBrand.attachments.fileName) {
+              fileCount = 1;
+            }
+          }
           tableData.push({
             nameEn: newBrand.brandNameEn || '',
             nameAr: newBrand.brandNameAr || '',
-            fileCount: newBrand.attachments?.length || 0,
+            fileCount: fileCount,
             source: 'New'
           });
         }

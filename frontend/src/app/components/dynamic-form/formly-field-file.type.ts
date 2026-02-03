@@ -1,7 +1,16 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { FieldType, FieldTypeConfig, FormlyModule } from '@ngx-formly/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
+import { BrandService, FileUploadResponse } from '../../services/brand.service';
+
+interface UploadedFile {
+  id: string;
+  fileName: string;
+  fileSize?: number;
+  uploading?: boolean;
+  error?: string;
+}
 
 @Component({
   selector: 'formly-field-file',
@@ -21,13 +30,46 @@ import { ReactiveFormsModule } from '@angular/forms';
         [multiple]="props['multiple']"
         (change)="onFileChange($event)"
         [required]="props.required"
+        [disabled]="isUploading"
       />
       <small *ngIf="props['maxFileSize']" class="form-text text-muted">
         Max file size: {{ (props['maxFileSize'] / 1048576).toFixed(2) }} MB
       </small>
-      <div *ngIf="selectedFiles.length > 0" class="mt-2">
-        <small class="text-muted">Selected: {{ selectedFiles.join(', ') }}</small>
+
+      <!-- Uploading indicator -->
+      <div *ngIf="isUploading" class="mt-2">
+        <div class="d-flex align-items-center text-primary">
+          <div class="spinner-border spinner-border-sm me-2" role="status">
+            <span class="visually-hidden">Uploading...</span>
+          </div>
+          <small>Uploading files...</small>
+        </div>
       </div>
+
+      <!-- Uploaded files list -->
+      <div *ngIf="uploadedFiles.length > 0 && !isUploading" class="mt-2">
+        <div class="list-group">
+          <div *ngFor="let file of uploadedFiles; let i = index"
+               class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2">
+            <div class="d-flex align-items-center">
+              <i class="bi bi-file-earmark-check text-success me-2"></i>
+              <span>{{ file.fileName }}</span>
+              <span *ngIf="file.fileSize" class="text-muted ms-2 small">
+                ({{ formatFileSize(file.fileSize) }})
+              </span>
+            </div>
+            <button type="button" class="btn btn-outline-danger btn-sm" (click)="removeFile(i)">
+              <i class="bi bi-x"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Error message -->
+      <div *ngIf="uploadError" class="text-danger mt-1">
+        <small><i class="bi bi-exclamation-triangle me-1"></i>{{ uploadError }}</small>
+      </div>
+
       <div *ngIf="showError && formControl.errors" class="text-danger mt-1">
         <small *ngIf="formControl.errors['required']">This field is required</small>
       </div>
@@ -35,30 +77,126 @@ import { ReactiveFormsModule } from '@angular/forms';
   `,
 })
 export class FormlyFieldFile extends FieldType<FieldTypeConfig> {
-  selectedFiles: string[] = [];
+  private brandService = inject(BrandService);
+
+  uploadedFiles: UploadedFile[] = [];
+  isUploading = false;
+  uploadError: string | null = null;
 
   override get showError() {
     return this.formControl.invalid && (this.formControl.dirty || this.formControl.touched);
   }
 
   onFileChange(event: any) {
-    const files = event.target.files;
-    if (files && files.length > 0) {
-      this.selectedFiles = Array.from(files).map((file: any) => file.name);
-
-      // For single file, store the file object
-      if (!this.props['multiple']) {
-        this.formControl.setValue(files[0]);
-        this.formControl.markAsTouched();
-      } else {
-        // For multiple files, store array of file objects
-        this.formControl.setValue(Array.from(files));
-        this.formControl.markAsTouched();
-      }
-    } else {
-      this.selectedFiles = [];
-      this.formControl.setValue(null);
-      this.formControl.markAsTouched();
+    const files: FileList = event.target.files;
+    if (!files || files.length === 0) {
+      return;
     }
+
+    this.uploadError = null;
+    this.isUploading = true;
+
+    const fileArray = Array.from(files);
+
+    if (!this.props['multiple']) {
+      // Single file upload
+      this.uploadSingleFile(fileArray[0]);
+    } else {
+      // Multiple files upload
+      this.uploadMultipleFiles(fileArray);
+    }
+  }
+
+  private uploadSingleFile(file: File): void {
+    this.brandService.uploadFile(file).subscribe({
+      next: (response: FileUploadResponse) => {
+        this.uploadedFiles = [{
+          id: response.id,
+          fileName: response.fileName,
+          fileSize: response.fileSize
+        }];
+        this.updateFormControlValue();
+        this.isUploading = false;
+      },
+      error: (err) => {
+        console.error('File upload error:', err);
+        this.uploadError = 'Failed to upload file. Please try again.';
+        this.isUploading = false;
+        // Fallback: store file info locally with mock ID
+        this.uploadedFiles = [{
+          id: 'local_' + Date.now(),
+          fileName: file.name,
+          fileSize: file.size
+        }];
+        this.updateFormControlValue();
+      }
+    });
+  }
+
+  private uploadMultipleFiles(files: File[]): void {
+    this.brandService.uploadFiles(files).subscribe({
+      next: (responses: FileUploadResponse[]) => {
+        this.uploadedFiles = [
+          ...this.uploadedFiles,
+          ...responses.map(r => ({
+            id: r.id,
+            fileName: r.fileName,
+            fileSize: r.fileSize
+          }))
+        ];
+        this.updateFormControlValue();
+        this.isUploading = false;
+      },
+      error: (err) => {
+        console.error('File upload error:', err);
+        this.uploadError = 'Failed to upload files. Please try again.';
+        this.isUploading = false;
+        // Fallback: store file info locally with mock IDs
+        this.uploadedFiles = [
+          ...this.uploadedFiles,
+          ...files.map(f => ({
+            id: 'local_' + Date.now() + '_' + Math.random().toString(36).slice(2),
+            fileName: f.name,
+            fileSize: f.size
+          }))
+        ];
+        this.updateFormControlValue();
+      }
+    });
+  }
+
+  removeFile(index: number): void {
+    const file = this.uploadedFiles[index];
+
+    // Optionally delete from server (if not a local file)
+    if (file.id && !file.id.startsWith('local_')) {
+      this.brandService.deleteFile(file.id).subscribe({
+        error: (err) => console.error('Failed to delete file:', err)
+      });
+    }
+
+    this.uploadedFiles.splice(index, 1);
+    this.updateFormControlValue();
+  }
+
+  private updateFormControlValue(): void {
+    // Store the uploaded file metadata (id and fileName) in the form control
+    if (this.uploadedFiles.length === 0) {
+      this.formControl.setValue(null);
+    } else if (!this.props['multiple']) {
+      this.formControl.setValue(this.uploadedFiles[0]);
+    } else {
+      this.formControl.setValue([...this.uploadedFiles]);
+    }
+    this.formControl.markAsTouched();
+    this.formControl.markAsDirty();
+  }
+
+  formatFileSize(bytes: number): string {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 }

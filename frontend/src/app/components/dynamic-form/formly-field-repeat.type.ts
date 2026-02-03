@@ -81,6 +81,15 @@ export class FormlyFieldRepeat extends FieldArrayType {
   saveItem(index: number): void {
     if (this.isItemValid(index)) {
       this.savedItems[index] = true;
+      // Mark the item as saved in the model so parent can detect it
+      if (this.model?.[index]) {
+        this.model[index]['_saved'] = true;
+      }
+      // Trigger form change detection to notify parent components
+      this.formControl.updateValueAndValidity();
+      this.formControl.markAsDirty();
+      // Force emit change event
+      this.formControl.setValue([...this.formControl.value]);
     }
   }
 
