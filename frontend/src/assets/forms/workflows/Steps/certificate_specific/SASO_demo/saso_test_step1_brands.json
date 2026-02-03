@@ -66,7 +66,8 @@
       "key": "brandTable",
       "type": "table",
       "templateOptions": {
-        "label": "Brand Summary"
+        "label": "Brand Summary",
+        "columns": ["nameEn", "nameAr", "fileCount", "source"]
       }
     }
   ],
