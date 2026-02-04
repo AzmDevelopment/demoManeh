@@ -61,6 +61,9 @@ export class SASOTestWorkflowFunctions implements WorkflowFunctions {
     // Add new brands from repeat field (only saved ones with _saved flag)
     if (model['newBrand'] && Array.isArray(model['newBrand'])) {
       model['newBrand'].forEach((newBrand: any) => {
+        // Skip null/undefined items
+        if (!newBrand) return;
+
         // Only include brands that have been saved (have _saved flag)
         if (newBrand._saved && (newBrand.brandNameEn || newBrand.brandNameAr)) {
           // Count attachments - handle both array and single file formats

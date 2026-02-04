@@ -94,15 +94,36 @@ export class FormlyFieldRepeat extends FieldArrayType implements AfterViewInit {
   saveItem(index: number): void {
     if (this.isItemValid(index)) {
       this.savedItems[index] = true;
-      // Mark the item as saved in the model so parent can detect it
+
+      // Mark the item as saved in the model
       if (this.model?.[index]) {
         this.model[index]['_saved'] = true;
       }
-      // Trigger form change detection to notify parent components
-      this.formControl.updateValueAndValidity();
+
+      // Mark form as dirty
       this.formControl.markAsDirty();
-      // Force emit change event
-      this.formControl.setValue([...this.formControl.value]);
+
+      // Notify Formly of the model change using fieldChanges
+      if (this.options?.fieldChanges) {
+        this.options.fieldChanges.next({
+          field: this.field,
+          type: 'valueChanges',
+          value: this.model
+        });
+      }
+
+      // Force parent model update by replacing the array in parent model
+      // This ensures Angular change detection and Formly's modelChange fires
+      if (this.field.parent?.model && this.field.key) {
+        const key = this.field.key as string;
+        // Create new array reference to trigger change detection
+        this.field.parent.model[key] = [...this.model];
+      }
+
+      // Trigger detectChanges
+      if (this.options?.detectChanges) {
+        this.options.detectChanges(this.field);
+      }
     }
   }
 

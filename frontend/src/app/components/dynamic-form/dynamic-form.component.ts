@@ -404,8 +404,14 @@ export class DynamicFormComponent implements OnInit, OnDestroy {
     console.log('Component.onModelChange called with model:', model);
     console.log('Current workflowId:', this.workflowId);
     this.model = model;
+    this.triggerWorkflowModelChange();
+  }
 
-    // Call workflow-specific model change handler
+  /**
+   * Trigger workflow model change handlers
+   * Extracted to be called from both onModelChange and form.valueChanges subscription
+   */
+  private triggerWorkflowModelChange(): void {
     if (this.workflowId) {
       const context: WorkflowFunctionContext = {
         loadedBrands: this.optionLoader.getLoadedBrands(),
@@ -413,16 +419,12 @@ export class DynamicFormComponent implements OnInit, OnDestroy {
         workflowSteps: this.workflowSteps
       };
 
-      console.log('Calling workflow handler with context:', context);
-
       this.workflowHandler.onModelChange(
         this.workflowId,
         this.model,
         this.fields,
         context
       );
-    } else {
-      console.warn('No workflowId set - workflow functions will not be called');
     }
   }
 
