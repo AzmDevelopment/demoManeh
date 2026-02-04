@@ -83,8 +83,9 @@
               "multiple": true,
               "required": false,
               "accept": ".pdf,.jpg,.png,.doc,.docx",
-              "uploadEndpoint": "/api/files/upload",
-              "deleteEndpoint": "/api/files"
+              "uploadEndpoint": "/api/Brand/upload",
+              "uploadMultipleEndpoint": "/api/Brand/upload-multiple",
+              "deleteEndpoint": "/api/Brand/files"
             }
           }
         ]

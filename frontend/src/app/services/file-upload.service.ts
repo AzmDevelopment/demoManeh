@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, forkJoin, of } from 'rxjs';
-import { map, catchError } from 'rxjs/operators';
+import { Observable, forkJoin } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 export interface FileUploadResponse {
   id: string;
@@ -13,7 +13,7 @@ export interface FileUploadResponse {
 export interface FileUploadConfig {
   uploadEndpoint: string;
   deleteEndpoint?: string;
-  multipleUploadEndpoint?: string;
+  uploadMultipleEndpoint?: string;
 }
 
 @Injectable({
@@ -23,7 +23,7 @@ export class FileUploadService {
   private defaultConfig: FileUploadConfig = {
     uploadEndpoint: '/api/files/upload',
     deleteEndpoint: '/api/files',
-    multipleUploadEndpoint: '/api/files/upload-multiple'
+    uploadMultipleEndpoint: '/api/files/upload-multiple'
   };
 
   constructor(private http: HttpClient) {}
@@ -42,7 +42,7 @@ export class FileUploadService {
    * Upload multiple files
    */
   uploadFiles(files: File[], config?: Partial<FileUploadConfig>): Observable<FileUploadResponse[]> {
-    const multipleEndpoint = config?.multipleUploadEndpoint || this.defaultConfig.multipleUploadEndpoint;
+    const multipleEndpoint = config?.uploadMultipleEndpoint || this.defaultConfig.uploadMultipleEndpoint;
     const singleEndpoint = config?.uploadEndpoint || this.defaultConfig.uploadEndpoint;
 
     // Try multiple upload endpoint first, fallback to individual uploads

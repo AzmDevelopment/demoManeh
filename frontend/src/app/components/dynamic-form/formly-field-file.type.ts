@@ -91,7 +91,7 @@ export class FormlyFieldFile extends FieldType<FieldTypeConfig> {
     return {
       uploadEndpoint: this.props['uploadEndpoint'],
       deleteEndpoint: this.props['deleteEndpoint'],
-      multipleUploadEndpoint: this.props['multipleUploadEndpoint']
+      uploadMultipleEndpoint: this.props['uploadMultipleEndpoint']
     };
   }
 

@@ -148,8 +148,8 @@ export class FieldConverterService {
       if (field.templateOptions.deleteEndpoint) {
         formlyField.props!['deleteEndpoint'] = field.templateOptions.deleteEndpoint;
       }
-      if (field.templateOptions.multipleUploadEndpoint) {
-        formlyField.props!['multipleUploadEndpoint'] = field.templateOptions.multipleUploadEndpoint;
+      if (field.templateOptions.uploadMultipleEndpoint) {
+        formlyField.props!['uploadMultipleEndpoint'] = field.templateOptions.uploadMultipleEndpoint;
       }
     }
 
