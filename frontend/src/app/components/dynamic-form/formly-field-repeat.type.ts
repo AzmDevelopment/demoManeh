@@ -4,17 +4,17 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
 
 @Component({
-  selector: 'formly-field-repeat',  
+  selector: 'formly-field-repeat',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, FormlyModule],
   template: `
     <div class="repeat-section mb-3">
       <div class="d-flex justify-content-between align-items-center mb-3">
         <label *ngIf="props.label" class="form-label fw-bold mb-0">{{ props.label }}</label>
-        <button 
-          *ngIf="props['addButtonPosition'] === 'top-right'" 
-          type="button" 
-          class="btn btn-outline-primary" 
+        <button
+          *ngIf="props['addButtonPosition'] === 'top-right'"
+          type="button"
+          class="btn btn-outline-primary"
           (click)="addNew()">
           {{ props['addText'] || '➕ Add' }}
         </button>
@@ -43,7 +43,7 @@ import { ReactiveFormsModule } from '@angular/forms';
         <!-- Expanded View (when editing) -->
         <div *ngIf="!savedItems[i]" class="card-body">
           <div class="d-flex justify-content-between align-items-start mb-3">
-            <span class="badge bg-primary">New Brand {{ i + 1 }}</span>
+            <span class="badge bg-primary">New {{ itemLabel }} {{ i + 1 }}</span>
             <button type="button" class="btn btn-outline-danger btn-sm" (click)="remove(i)">
               {{ props['removeText'] || '❌ Remove' }}
             </button>
@@ -57,16 +57,16 @@ import { ReactiveFormsModule } from '@angular/forms';
               [disabled]="!isItemValid(i)"
             >
               <i class="bi bi-check-lg me-1"></i>
-              {{ props['saveText'] || 'Save Brand' }}
+              {{ props['saveText'] || 'Save' }}
             </button>
           </div>
         </div>
       </div>
 
-      <button 
-        *ngIf="props['addButtonPosition'] !== 'top-right'" 
-        type="button" 
-        class="btn btn-outline-primary" 
+      <button
+        *ngIf="props['addButtonPosition'] !== 'top-right'"
+        type="button"
+        class="btn btn-outline-primary"
         (click)="addNew()">
         {{ props['addText'] || '➕ Add' }}
       </button>
@@ -75,6 +75,22 @@ import { ReactiveFormsModule } from '@angular/forms';
 })
 export class FormlyFieldRepeat extends FieldArrayType implements AfterViewInit {
   savedItems: boolean[] = [];
+
+  get itemLabel(): string {
+    return this.props['itemLabel'] || 'Item';
+  }
+
+  get titleField(): string {
+    return this.props['titleField'] || '';
+  }
+
+  get subtitleField(): string {
+    return this.props['subtitleField'] || '';
+  }
+
+  get requiredFields(): string[] {
+    return this.props['requiredFields'] || [];
+  }
 
   override add(i?: number, initialModel?: any, opts?: { markAsDirty: boolean }): void {
     super.add(i, initialModel, opts);
@@ -138,25 +154,44 @@ export class FormlyFieldRepeat extends FieldArrayType implements AfterViewInit {
     const model = this.model?.[index];
     if (!model) return false;
 
-    // Check brandNameEn and brandNameAr are filled
-    return !!(model['brandNameEn'] && model['brandNameAr']);
+    // If requiredFields is specified, check those fields
+    if (this.requiredFields.length > 0) {
+      return this.requiredFields.every(fieldKey => !!model[fieldKey]);
+    }
+
+    // Fallback: check if any required fields in the fieldGroup are filled
+    const nestedFields = fieldGroup[index].fieldGroup || [];
+    for (const nestedField of nestedFields) {
+      if (nestedField.props?.required && !model[nestedField.key as string]) {
+        return false;
+      }
+    }
+    return true;
   }
 
   getItemTitle(index: number): string {
     const model = this.model?.[index];
-    if (!model) return `Brand ${index + 1}`;
-    return model['brandNameEn'] || `Brand ${index + 1}`;
+    if (!model) return `${this.itemLabel} ${index + 1}`;
+
+    if (this.titleField && model[this.titleField]) {
+      return model[this.titleField];
+    }
+    return `${this.itemLabel} ${index + 1}`;
   }
 
   getItemSubtitle(index: number): string {
     const model = this.model?.[index];
     if (!model) return '';
-    return model['brandNameAr'] || '';
+
+    if (this.subtitleField && model[this.subtitleField]) {
+      return model[this.subtitleField];
+    }
+    return '';
   }
 
   ngAfterViewInit() {
-    // Listen for add brand button clicks
-    const addButton = document.querySelector('.add-brand-trigger');
+    // Listen for add button clicks if a trigger element exists
+    const addButton = document.querySelector('.add-trigger');
     if (addButton) {
       addButton.addEventListener('click', () => {
         this.addNew();

@@ -141,6 +141,16 @@ export class FieldConverterService {
       if (field.templateOptions.maxFileSize) {
         formlyField.props!['maxFileSize'] = field.templateOptions.maxFileSize;
       }
+      // Dynamic upload endpoints
+      if (field.templateOptions.uploadEndpoint) {
+        formlyField.props!['uploadEndpoint'] = field.templateOptions.uploadEndpoint;
+      }
+      if (field.templateOptions.deleteEndpoint) {
+        formlyField.props!['deleteEndpoint'] = field.templateOptions.deleteEndpoint;
+      }
+      if (field.templateOptions.multipleUploadEndpoint) {
+        formlyField.props!['multipleUploadEndpoint'] = field.templateOptions.multipleUploadEndpoint;
+      }
     }
 
     // Radio and multicheckbox properties
@@ -160,6 +170,12 @@ export class FieldConverterService {
     if (type === 'repeat' && field.fieldArray) {
       formlyField.props!['addText'] = field.templateOptions.addText;
       formlyField.props!['removeText'] = field.templateOptions.removeText;
+      formlyField.props!['saveText'] = field.templateOptions.saveText;
+      formlyField.props!['addButtonPosition'] = field.templateOptions.addButtonPosition;
+      formlyField.props!['itemLabel'] = field.templateOptions.itemLabel;
+      formlyField.props!['titleField'] = field.templateOptions.titleField;
+      formlyField.props!['subtitleField'] = field.templateOptions.subtitleField;
+      formlyField.props!['requiredFields'] = field.templateOptions.requiredFields;
       formlyField.fieldArray = {
         fieldGroup: field.fieldArray.fieldGroup?.map((f: any) => this.convertToFormlyField(f)) || []
       };
@@ -168,6 +184,9 @@ export class FieldConverterService {
     // Table properties
     if (type === 'table') {
       formlyField.props!['columns'] = field.templateOptions.columns;
+      formlyField.props!['columnHeaders'] = field.templateOptions.columnHeaders;
+      formlyField.props!['emptyMessage'] = field.templateOptions.emptyMessage;
+      formlyField.props!['badgeColumns'] = field.templateOptions.badgeColumns;
       if (field.expressionProperties?.template) {
         formlyField.props!['template'] = field.expressionProperties.template;
       }

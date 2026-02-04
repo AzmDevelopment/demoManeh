@@ -2,7 +2,7 @@ import { Component, inject } from '@angular/core';
 import { FieldType, FieldTypeConfig, FormlyModule } from '@ngx-formly/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
-import { BrandService, FileUploadResponse } from '../../services/brand.service';
+import { FileUploadService, FileUploadResponse, FileUploadConfig } from '../../services/file-upload.service';
 
 interface UploadedFile {
   id: string;
@@ -77,7 +77,7 @@ interface UploadedFile {
   `,
 })
 export class FormlyFieldFile extends FieldType<FieldTypeConfig> {
-  private brandService = inject(BrandService);
+  private fileUploadService = inject(FileUploadService);
 
   uploadedFiles: UploadedFile[] = [];
   isUploading = false;
@@ -85,6 +85,14 @@ export class FormlyFieldFile extends FieldType<FieldTypeConfig> {
 
   override get showError() {
     return this.formControl.invalid && (this.formControl.dirty || this.formControl.touched);
+  }
+
+  get uploadConfig(): Partial<FileUploadConfig> {
+    return {
+      uploadEndpoint: this.props['uploadEndpoint'],
+      deleteEndpoint: this.props['deleteEndpoint'],
+      multipleUploadEndpoint: this.props['multipleUploadEndpoint']
+    };
   }
 
   onFileChange(event: any) {
@@ -108,7 +116,7 @@ export class FormlyFieldFile extends FieldType<FieldTypeConfig> {
   }
 
   private uploadSingleFile(file: File): void {
-    this.brandService.uploadFile(file).subscribe({
+    this.fileUploadService.uploadFile(file, this.uploadConfig).subscribe({
       next: (response: FileUploadResponse) => {
         this.uploadedFiles = [{
           id: response.id,
@@ -134,7 +142,7 @@ export class FormlyFieldFile extends FieldType<FieldTypeConfig> {
   }
 
   private uploadMultipleFiles(files: File[]): void {
-    this.brandService.uploadFiles(files).subscribe({
+    this.fileUploadService.uploadFiles(files, this.uploadConfig).subscribe({
       next: (responses: FileUploadResponse[]) => {
         this.uploadedFiles = [
           ...this.uploadedFiles,
@@ -170,7 +178,7 @@ export class FormlyFieldFile extends FieldType<FieldTypeConfig> {
 
     // Optionally delete from server (if not a local file)
     if (file.id && !file.id.startsWith('local_')) {
-      this.brandService.deleteFile(file.id).subscribe({
+      this.fileUploadService.deleteFile(file.id, this.uploadConfig).subscribe({
         error: (err) => console.error('Failed to delete file:', err)
       });
     }

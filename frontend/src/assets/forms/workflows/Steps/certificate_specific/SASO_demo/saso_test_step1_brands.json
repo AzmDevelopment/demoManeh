@@ -24,7 +24,20 @@
       "type": "table",
       "templateOptions": {
         "label": "Brand Summary",
-        "columns": ["nameEn", "nameAr", "fileCount", "source"]
+        "columns": ["nameEn", "nameAr", "fileCount", "source"],
+        "columnHeaders": {
+          "nameEn": "Brand (English)",
+          "nameAr": "Brand (Arabic)",
+          "fileCount": "Files",
+          "source": "Source"
+        },
+        "emptyMessage": "No brands added yet. Select an existing brand or add a new one.",
+        "badgeColumns": {
+          "source": {
+            "Existing": "bg-info",
+            "New": "bg-success"
+          }
+        }
       }
     },
 
@@ -36,7 +49,11 @@
         "addText": "➕ Add New Brand",
         "removeText": "❌ Remove",
         "saveText": "✓ Save Brand",
-        "addButtonPosition": "top-right"
+        "addButtonPosition": "top-right",
+        "itemLabel": "Brand",
+        "titleField": "brandNameEn",
+        "subtitleField": "brandNameAr",
+        "requiredFields": ["brandNameEn", "brandNameAr"]
       },
       "fieldArray": {
         "fieldGroup": [
@@ -65,7 +82,9 @@
               "label": "Brand Attachments",
               "multiple": true,
               "required": false,
-              "accept": ".pdf,.jpg,.png,.doc,.docx"
+              "accept": ".pdf,.jpg,.png,.doc,.docx",
+              "uploadEndpoint": "/api/files/upload",
+              "deleteEndpoint": "/api/files"
             }
           }
         ]
