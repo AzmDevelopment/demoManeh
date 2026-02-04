@@ -6,11 +6,11 @@ import { FormlyBootstrapModule } from '@ngx-formly/bootstrap';
 
 import { routes } from './app.routes';
 import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
-import { FormlyFieldFile } from './components/dynamic-form/formly-field-file.type';
-import { FormlyFieldRepeat } from './components/dynamic-form/formly-field-repeat.type';
-import { FormlyFieldButton } from './components/dynamic-form/formly-field-button.type';
-import { FormlyFieldHtml } from './components/dynamic-form/formly-field-html.type';
-import { FormlyFieldTable } from './components/dynamic-form/formly-field-table.type';
+import { FormlyFieldFile } from './components/dynamic-form/dynamic-form-types/formly-field-file.type';
+import { FormlyFieldRepeat } from './components/dynamic-form/dynamic-form-types/formly-field-repeat.type';
+import { FormlyFieldButton } from './components/dynamic-form/dynamic-form-types/formly-field-button.type';
+import { FormlyFieldHtml } from './components/dynamic-form/dynamic-form-types/formly-field-html.type';
+import { FormlyFieldTable } from './components/dynamic-form/dynamic-form-types/formly-field-table.type';
 
 export const appConfig: ApplicationConfig = {
   providers: [
