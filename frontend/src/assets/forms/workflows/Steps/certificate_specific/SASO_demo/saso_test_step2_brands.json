@@ -21,11 +21,10 @@
       "type": "table",
       "templateOptions": {
         "label": "Brand Summary",
-        "columns": [ "nameEn", "nameAr", "fileCount", "source" ],
+        "columns": [ "nameEn", "nameAr", "source" ],
         "columnHeaders": {
           "nameEn": "Brand (English)",
           "nameAr": "Brand (Arabic)",
-          "fileCount": "Files",
           "source": "Source"
         },
         "emptyMessage": "No brands added yet. Select an existing brand or add a new one.",
@@ -38,36 +37,41 @@
       }
     },
     {
-      "key": "newBrands",
-      "type": "repeat",
+      "key": "newBrand",
+      "type": "add-to-table",
       "templateOptions": {
-        "label": "Add New Brands",
         "addText": "➕ Add New Brand",
-        "removeText": "❌ Remove",
-        "itemLabel": "Brand"
+        "saveText": "💾 Save",
+        "cancelText": "✕ Cancel",
+        "targetTableKey": "brandTable",
+        "fieldMapping": {
+          "brandNameEn": "nameEn",
+          "brandNameAr": "nameAr"
+        },
+        "defaults": {
+          "source": "New"
+        }
       },
-      "fieldArray": {
-        "fieldGroup": [
-          {
-            "key": "brandNameEn",
-            "type": "input",
-            "templateOptions": {
-              "label": "Brand Name (English)",
-              "placeholder": "Enter brand name in English",
-              "required": true
-            }
-          },
-          {
-            "key": "brandNameAr",
-            "type": "input",
-            "templateOptions": {
-              "label": "Brand Name (Arabic)",
-              "placeholder": "أدخل اسم العلامة التجارية بالعربية",
-              "required": true
-            }
+      "fieldGroup": [
+        {
+          "key": "brandNameEn",
+          "type": "input",
+          "templateOptions": {
+            "label": "Brand Name (English)",
+            "placeholder": "Enter brand name in English",
+            "required": true
           }
-        ]
-      }
+        },
+        {
+          "key": "brandNameAr",
+          "type": "input",
+          "templateOptions": {
+            "label": "Brand Name (Arabic)",
+            "placeholder": "أدخل اسم العلامة التجارية بالعربية",
+            "required": true
+          }
+        }
+      ]
     }
   ],
 

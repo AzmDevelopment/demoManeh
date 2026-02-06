@@ -1,6 +1,14 @@
 import { HttpClient } from '@angular/common/http';
 
 /**
+ * Step code for: saso_test_step2_brands
+ * 
+ * This file lives alongside the step JSON so each step has its own logic.
+ * The add-to-table formly type handles adding new brands to the brandTable.
+ * This file handles API-driven logic: loading existing brands, selecting them.
+ */
+
+/**
  * Brand interface for API response
  */
 export interface Brand {
@@ -10,14 +18,19 @@ export interface Brand {
 }
 
 /**
+ * Brand table row interface
+ */
+export interface BrandTableRow {
+  nameEn: string;
+  nameAr: string;
+  source: 'Existing' | 'New';
+}
+
+/**
  * Load brands from API and populate the selectedBrand dropdown
- * Called on field initialization (onInit hook)
  */
 export async function loadBrands(field: any, model: any, formState: any, http: HttpClient): Promise<void> {
   try {
-    console.log('loadBrands: Fetching brands from API...');
-    
-    // Set loading state
     if (field.templateOptions) {
       field.templateOptions.loading = true;
     }
@@ -25,7 +38,6 @@ export async function loadBrands(field: any, model: any, formState: any, http: H
     const brands = await http.get<Brand[]>('/api/Brands').toPromise();
     
     if (brands && Array.isArray(brands)) {
-      // Map brands to dropdown options
       const options = brands.map(brand => ({
         value: brand.value,
         label: brand.label,
@@ -36,8 +48,6 @@ export async function loadBrands(field: any, model: any, formState: any, http: H
         field.templateOptions.options = options;
         field.templateOptions.loading = false;
       }
-      
-      console.log('loadBrands: Loaded', brands.length, 'brands successfully');
     }
   } catch (error) {
     console.error('loadBrands: Error fetching brands', error);
@@ -50,74 +60,55 @@ export async function loadBrands(field: any, model: any, formState: any, http: H
 }
 
 /**
- * Handle brand selection change event
+ * Handle brand selection change - add existing brand to table
  */
-export function onBrandSelected(field: any, model: any, formState: any): void {
+export function onBrandSelected(field: any, model: any): void {
   const selectedBrand = model.selectedBrand;
+  if (!selectedBrand) return;
+
+  const options = field.templateOptions?.options || [];
+  const brandOption = options.find((opt: any) => opt.value === selectedBrand);
   
-  if (selectedBrand) {
-    console.log('onBrandSelected: Brand selected:', selectedBrand);
+  if (brandOption) {
+    if (!model.brandTable) {
+      model.brandTable = [];
+    }
+
+    const row: BrandTableRow = {
+      nameEn: brandOption.label,
+      nameAr: brandOption.labelAr || brandOption.label,
+      source: 'Existing'
+    };
+
+    const exists = model.brandTable.some(
+      (existing: BrandTableRow) => existing.nameEn === row.nameEn && existing.nameAr === row.nameAr
+    );
+
+    if (!exists) {
+      model.brandTable = [...model.brandTable, row];
+    }
   }
 }
 
 /**
- * Add a brand to the summary table
+ * Validate that at least one brand is in the table
  */
-export function addBrandToTable(field: any, model: any, formState: any): void {
-  if (!model.brandTable) {
-    model.brandTable = [];
-  }
-
-  const brand = formState?.selectedBrandDetails || { 
-    label: model.brandNameEn, 
-    labelAr: model.brandNameAr 
-  };
-
-  model.brandTable.push({
-    nameEn: brand.label || brand.brandNameEn,
-    nameAr: brand.labelAr || brand.brandNameAr,
-    fileCount: 0,
-    source: brand.value ? 'Existing' : 'New'
-  });
-  
-  console.log('addBrandToTable: Added brand to table');
-}
-
-/**
- * Validate that at least one brand is selected or added
- */
-export function validateBrands(field: any, model: any, formState: any): { isValid: boolean; message: string } {
-  const hasSelectedBrand = !!model.selectedBrand;
-  const hasNewBrands = model.newBrand && model.newBrand.length > 0;
-  const hasBrandsInTable = model.brandTable && model.brandTable.length > 0;
-  
-  const isValid = hasSelectedBrand || hasNewBrands || hasBrandsInTable;
-  
+export function validateBrands(model: any): { isValid: boolean; message: string } {
+  const hasBrands = model.brandTable && model.brandTable.length > 0;
   return {
-    isValid,
-    message: isValid ? '' : 'Please select an existing brand or add a new one'
+    isValid: hasBrands,
+    message: hasBrands ? '' : 'Please select an existing brand or add a new one'
   };
 }
 
-/**
- * Export all hooks as a single object
- * The key names match the hook names used in the step JSON definition
- */
+export const STEP_ID = 'saso_test_step2_brands';
+
 export const hooks = {
   loadBrands,
   onBrandSelected,
-  addBrandToTable,
   validateBrands
 };
 
-/**
- * Step ID constant
- */
-export const STEP_ID = 'saso_test_step2_brands';
-
-/**
- * Export default for convenience
- */
 export default {
   stepId: STEP_ID,
   hooks

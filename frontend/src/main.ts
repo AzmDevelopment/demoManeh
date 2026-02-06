@@ -10,6 +10,7 @@ import { routes } from './app/app.routes';
 import { FormlyFieldFile } from './app/components/dynamic-form/formly-field-file.type';
 import { FormlyFieldTable } from './app/components/dynamic-form/formly-field-table.type';
 import { FormlyFieldRepeat } from './app/components/dynamic-form/formly-field-repeat.type';
+import { FormlyFieldAddToTable } from './app/components/dynamic-form/formly-field-add-to-table.type';
 
 bootstrapApplication(App, {
   providers: [
@@ -21,7 +22,8 @@ bootstrapApplication(App, {
         types: [
           { name: 'file', component: FormlyFieldFile },
           { name: 'table', component: FormlyFieldTable },
-          { name: 'repeat', component: FormlyFieldRepeat }
+          { name: 'repeat', component: FormlyFieldRepeat },
+          { name: 'add-to-table', component: FormlyFieldAddToTable }
         ]
       })
     )

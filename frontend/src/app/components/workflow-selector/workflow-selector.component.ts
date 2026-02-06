@@ -160,6 +160,11 @@ export class WorkflowSelectorComponent implements OnInit {
         };
       }
 
+      // Handle fieldGroup for add-to-table type
+      if (field.fieldGroup && field.type === 'add-to-table') {
+        formlyField.fieldGroup = this.convertFieldsToFormly(field.fieldGroup);
+      }
+
       return formlyField;
     });
   }
@@ -196,10 +201,19 @@ export class WorkflowSelectorComponent implements OnInit {
         if (tpl.titleField) props.titleField = tpl.titleField;
         if (tpl.subtitleField) props.subtitleField = tpl.subtitleField;
       }
+
+      // Handle add-to-table specific properties
+      if (field.type === 'add-to-table') {
+        if (tpl.addText) props.addText = tpl.addText;
+        if (tpl.saveText) props.saveText = tpl.saveText;
+        if (tpl.cancelText) props.cancelText = tpl.cancelText;
+        if (tpl.targetTableKey) props.targetTableKey = tpl.targetTableKey;
+        if (tpl.fieldMapping) props.fieldMapping = tpl.fieldMapping;
+        if (tpl.defaults) props.defaults = tpl.defaults;
+      }
     }
 
     if (field.props) {
-      // Use props directly if available
       Object.assign(props, field.props);
     }
 

@@ -13,8 +13,8 @@ export interface BadgeConfig {
   imports: [CommonModule, ReactiveFormsModule, FormlyModule],
   template: `
     <div class="mb-3">
-      <label *ngIf="label" class="form-label">
-        {{ label }}
+      <label *ngIf="tableLabel" class="form-label">
+        {{ tableLabel }}
       </label>
       
       <div class="table-responsive">
@@ -77,6 +77,8 @@ export interface BadgeConfig {
     .table {
       margin-bottom: 0;
       font-size: 0.9rem;
+      width: 100%;
+      border-collapse: collapse;
     }
 
     .table thead {
@@ -88,11 +90,13 @@ export interface BadgeConfig {
       color: #4a5568;
       padding: 12px;
       border-bottom: 2px solid #dee2e6;
+      border: 1px solid #dee2e6;
     }
 
     .table td {
       padding: 10px 12px;
       vertical-align: middle;
+      border: 1px solid #dee2e6;
     }
 
     .table-hover tbody tr:hover {
@@ -152,11 +156,7 @@ export interface BadgeConfig {
   `]
 })
 export class FormlyFieldTable extends FieldType<FieldTypeConfig> {
-  override get props(): any {
-    return (this as any).field?.props || (this as any).props || {};
-  }
-
-  get label(): string {
+  get tableLabel(): string {
     return this.props['label'] || '';
   }
 
@@ -169,6 +169,12 @@ export class FormlyFieldTable extends FieldType<FieldTypeConfig> {
   }
 
   get tableData(): any[] {
+    // Read from model (kept in sync by add-to-table), fall back to formControl
+    const key = this.field.key as string;
+    const modelData = this.model?.[key];
+    if (modelData && Array.isArray(modelData)) {
+      return modelData;
+    }
     return this.formControl?.value || [];
   }
 
