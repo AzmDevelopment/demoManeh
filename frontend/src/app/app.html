@@ -1,1 +1,6 @@
-<router-outlet></router-outlet>
+@if (fields().length > 0) {
+  <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <formly-form [form]="form" [fields]="fields()" [model]="model"></formly-form>
+    <button type="submit" [disabled]="!form.valid">Submit</button>
+  </form>
+}

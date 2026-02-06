@@ -1,0 +1,26 @@
+{
+  "fields": [
+    {
+      "key": "applicationType",
+      "type": "select",
+      "props": {
+        "label": "Select Application Type",
+        "required": true,
+        "options": [
+          {
+            "label": "IEC",
+            "value": "iec"
+          },
+          {
+            "label": "COC",
+            "value": "coc"
+          },
+          {
+            "label": "QML",
+            "value": "qml"
+          }
+        ]
+      }
+    }
+  ]
+}
