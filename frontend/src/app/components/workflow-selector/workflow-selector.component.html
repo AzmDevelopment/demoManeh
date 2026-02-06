@@ -1,0 +1,168 @@
+<div class="workflow-selector-container">
+  <!-- Error State -->
+  @if (error()) {
+    <div class="error-message">
+      <p>{{ error() }}</p>
+      <button (click)="loadWorkflowDefinitions()" class="btn btn-retry">Retry</button>
+    </div>
+  }
+
+  <!-- Workflow Selection View - Show when no workflow is selected -->
+  @if (!selectedWorkflow()) {
+    <div class="workflow-list">
+      <h1>Available Workflows</h1>
+      <p class="subtitle">Select a workflow to begin the certification process</p>
+      
+      <!-- Loading State for definitions -->
+      @if (loading()) {
+        <div class="loading-spinner">
+          <div class="spinner"></div>
+          <p>Loading workflow definitions...</p>
+        </div>
+      } @else if (workflows().length === 0) {
+        <div class="no-workflows">
+          <p>No workflows available.</p>
+          <button (click)="loadWorkflowDefinitions()" class="btn btn-primary">Reload</button>
+        </div>
+      } @else {
+        <div class="workflow-cards">
+          @for (workflow of workflows(); track workflow.certificationId) {
+            <div class="workflow-card" (click)="startWorkflow(workflow)">
+              <div class="card-header">
+                <h2>{{ workflow.name }}</h2>
+                <span class="version-badge">v{{ workflow.version }}</span>
+              </div>
+              
+              <p class="description">{{ workflow.description }}</p>
+              
+              @if (workflow.metadata) {
+                <div class="metadata">
+                  <div class="meta-item">
+                    <span class="label">Duration:</span>
+                    <span class="value">{{ workflow.metadata.estimatedTotalDurationDays }} days</span>
+                  </div>
+                  <div class="meta-item">
+                    <span class="label">Complexity:</span>
+                    <span class="value complexity-badge" [ngClass]="getComplexityClass(workflow.metadata.complexity)">
+                      {{ workflow.metadata.complexity }}
+                    </span>
+                  </div>
+                  <div class="meta-item">
+                    <span class="label">Steps:</span>
+                    <span class="value">{{ workflow.steps?.length || 0 }}</span>
+                  </div>
+                  @if (workflow.metadata.requiresFactoryVisit) {
+                    <div class="meta-item">
+                      <span class="factory-visit-badge">Requires Factory Visit</span>
+                    </div>
+                  }
+                </div>
+              }
+              
+              <button class="btn btn-start">
+                Start Workflow
+                <span class="arrow">→</span>
+              </button>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Workflow Step View - Show when a workflow is selected -->
+  @if (selectedWorkflow()) {
+    <div class="workflow-step-view">
+      <!-- Header with back button -->
+      <div class="step-header">
+        <button class="btn btn-back" (click)="backToWorkflowList()">
+          ← Back to Workflows
+        </button>
+        <h1>{{ selectedWorkflow()?.name }}</h1>
+      </div>
+
+      <!-- Progress indicator -->
+      <div class="progress-bar">
+        <div class="progress-track">
+          @for (step of selectedWorkflow()?.steps; track $index; let i = $index) {
+            <div class="progress-step" 
+                 [class.active]="i === currentStepIndex()"
+                 [class.completed]="i < currentStepIndex()">
+              <span class="step-number">{{ i + 1 }}</span>
+            </div>
+          }
+        </div>
+        <p class="step-counter">
+          Step {{ currentStepIndex() + 1 }} of {{ selectedWorkflow()?.steps?.length }}
+        </p>
+      </div>
+
+      <!-- Loading State for step -->
+      @if (loading()) {
+        <div class="loading-spinner">
+          <div class="spinner"></div>
+          <p>Loading step...</p>
+        </div>
+      } @else if (currentStep()) {
+        <!-- Current Step Content with ngx-formly Form -->
+        <div class="step-content">
+          <div class="step-info">
+            <h2>{{ currentStep()?.name }}</h2>
+            <p class="step-description">{{ currentStep()?.description }}</p>
+            <div class="step-meta">
+              <span class="actor-badge">Actor: {{ currentStep()?.actor }}</span>
+              @if (currentStep()?.stepConfig?.estimatedDurationHours) {
+                <span class="duration-badge">Est. Duration: {{ currentStep()?.stepConfig?.estimatedDurationHours }}h</span>
+              }
+            </div>
+          </div>
+
+          <!-- ngx-formly Form -->
+          @if (fields().length > 0) {
+            <form [formGroup]="form" (ngSubmit)="onSubmit()" class="formly-form-container">
+              <formly-form 
+                [form]="form" 
+                [fields]="fields()" 
+                [model]="model">
+              </formly-form>
+
+              <!-- Navigation buttons -->
+              <div class="step-navigation">
+                <button type="button" 
+                        class="btn btn-secondary" 
+                        (click)="loadPreviousStep()" 
+                        [disabled]="isFirstStep()">
+                  ← Previous Step
+                </button>
+                
+                @if (!isLastStep()) {
+                  <button type="submit" 
+                          class="btn btn-primary" 
+                          [disabled]="!isFormValid()">
+                    Next Step →
+                  </button>
+                } @else {
+                  <button type="submit" 
+                          class="btn btn-success" 
+                          [disabled]="!isFormValid()">
+                    Complete Workflow ✓
+                  </button>
+                }
+              </div>
+            </form>
+          }
+        </div>
+      } @else if (currentStepIndex() === (selectedWorkflow()?.steps?.length ?? 0) - 1) {
+        <!-- Completed State -->
+        <div class="completed-state">
+          <div class="success-icon">✓</div>
+          <h2>Workflow Complete!</h2>
+          <p>All steps have been completed successfully.</p>
+          <button class="btn btn-primary" (click)="backToWorkflowList()">
+            Start Another Workflow
+          </button>
+        </div>
+      }
+    </div>
+  }
+</div>

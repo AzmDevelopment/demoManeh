@@ -2,10 +2,16 @@ import { Routes } from '@angular/router';
 import { CategoryNavigationComponent } from './components/category-navigation/category-navigation.component';
 import { DynamicFormComponent } from './components/dynamic-form/dynamic-form.component';
 import { WorkflowStepComponent } from './components/workflow-step/workflow-step.component';
+import { WorkflowSelectorComponent } from './components/workflow-selector/workflow-selector.component';
 
 export const routes: Routes = [
   {
     path: '',
+    component: WorkflowSelectorComponent,
+    title: 'Select Workflow'
+  },
+  {
+    path: 'categories',
     component: CategoryNavigationComponent,
     title: 'Select Category'
   },

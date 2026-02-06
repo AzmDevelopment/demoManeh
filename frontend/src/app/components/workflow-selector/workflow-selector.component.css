@@ -1,0 +1,540 @@
+.workflow-selector-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+}
+
+/* Loading State */
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e0e0e0;
+  border-top-color: #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Error State */
+.error-message {
+  text-align: center;
+  padding: 40px;
+  background-color: #fff5f5;
+  border: 1px solid #fed7d7;
+  border-radius: 8px;
+  color: #c53030;
+}
+
+/* Workflow List */
+.workflow-list h1 {
+  color: #1a365d;
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  color: #718096;
+  margin-bottom: 30px;
+}
+
+.workflow-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 24px;
+}
+
+.workflow-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 24px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.workflow-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  border-color: #007bff;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.card-header h2 {
+  color: #2d3748;
+  font-size: 1.25rem;
+  margin: 0;
+  flex: 1;
+}
+
+.version-badge {
+  background: #edf2f7;
+  color: #4a5568;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.description {
+  color: #718096;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.metadata {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.meta-item .label {
+  color: #a0aec0;
+  font-size: 0.85rem;
+}
+
+.meta-item .value {
+  color: #4a5568;
+  font-weight: 500;
+  font-size: 0.85rem;
+}
+
+.complexity-badge {
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: capitalize;
+}
+
+.complexity-low {
+  background: #c6f6d5;
+  color: #276749;
+}
+
+.complexity-medium {
+  background: #feebc8;
+  color: #c05621;
+}
+
+.complexity-high {
+  background: #fed7d7;
+  color: #c53030;
+}
+
+.factory-visit-badge {
+  background: #e9d8fd;
+  color: #6b46c1;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+/* Buttons */
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-start {
+  width: 100%;
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-start:hover {
+  background: linear-gradient(135deg, #0056b3, #004094);
+}
+
+.btn-start .arrow {
+  transition: transform 0.2s ease;
+}
+
+.workflow-card:hover .btn-start .arrow {
+  transform: translateX(4px);
+}
+
+.btn-primary {
+  background: #007bff;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #0056b3;
+}
+
+.btn-secondary {
+  background: #e2e8f0;
+  color: #4a5568;
+}
+
+.btn-secondary:hover {
+  background: #cbd5e0;
+}
+
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-success {
+  background: #48bb78;
+  color: white;
+}
+
+.btn-success:hover {
+  background: #38a169;
+}
+
+.btn-back {
+  background: transparent;
+  color: #4a5568;
+  padding: 8px 16px;
+}
+
+.btn-back:hover {
+  background: #edf2f7;
+}
+
+.btn-retry {
+  background: #c53030;
+  color: white;
+  margin-top: 16px;
+}
+
+.btn-retry:hover {
+  background: #9b2c2c;
+}
+
+/* Step View */
+.workflow-step-view {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.step-header {
+  margin-bottom: 30px;
+}
+
+.step-header h1 {
+  color: #2d3748;
+  margin: 16px 0 0 0;
+}
+
+/* Progress Bar */
+.progress-bar {
+  margin-bottom: 30px;
+}
+
+.progress-track {
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+  margin-bottom: 12px;
+}
+
+.progress-track::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: #e2e8f0;
+  transform: translateY(-50%);
+  z-index: 0;
+}
+
+.progress-step {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: #a0aec0;
+  position: relative;
+  z-index: 1;
+  transition: all 0.3s ease;
+}
+
+.progress-step.active {
+  background: #007bff;
+  color: white;
+  transform: scale(1.1);
+}
+
+.progress-step.completed {
+  background: #48bb78;
+  color: white;
+}
+
+.step-counter {
+  text-align: center;
+  color: #718096;
+  font-size: 0.9rem;
+}
+
+/* Step Content */
+.step-content {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 24px;
+}
+
+.step-info {
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.step-info h2 {
+  color: #2d3748;
+  margin: 0 0 8px 0;
+}
+
+.step-description {
+  color: #718096;
+  margin-bottom: 16px;
+}
+
+.step-meta {
+  display: flex;
+  gap: 12px;
+}
+
+.actor-badge, .duration-badge {
+  background: #edf2f7;
+  color: #4a5568;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+/* Fields Preview */
+.fields-preview {
+  margin-bottom: 24px;
+}
+
+.fields-preview h3 {
+  color: #4a5568;
+  font-size: 1rem;
+  margin-bottom: 16px;
+}
+
+.field-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.field-item {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  background: #f7fafc;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  gap: 12px;
+}
+
+.field-label {
+  flex: 1;
+  color: #2d3748;
+  font-weight: 500;
+}
+
+.field-type {
+  background: #e2e8f0;
+  color: #4a5568;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.required-badge {
+  background: #fed7d7;
+  color: #c53030;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+}
+
+/* Step Navigation */
+.step-navigation {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 24px;
+  border-top: 1px solid #e2e8f0;
+}
+
+/* Completed State */
+.completed-state {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.success-icon {
+  width: 80px;
+  height: 80px;
+  background: #48bb78;
+  color: white;
+  font-size: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px;
+}
+
+.completed-state h2 {
+  color: #2d3748;
+  margin-bottom: 8px;
+}
+
+.completed-state p {
+  color: #718096;
+  margin-bottom: 24px;
+}
+
+/* ngx-formly Form Container */
+.formly-form-container {
+  margin-top: 24px;
+}
+
+.formly-form-container formly-form {
+  display: block;
+}
+
+/* Form field styling */
+.formly-form-container :deep(.form-group) {
+  margin-bottom: 20px;
+}
+
+.formly-form-container :deep(label) {
+  display: block;
+  font-weight: 500;
+  color: #2d3748;
+  margin-bottom: 6px;
+}
+
+.formly-form-container :deep(input),
+.formly-form-container :deep(select),
+.formly-form-container :deep(textarea) {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.formly-form-container :deep(input:focus),
+.formly-form-container :deep(select:focus),
+.formly-form-container :deep(textarea:focus) {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
+}
+
+.formly-form-container :deep(input.ng-invalid.ng-touched),
+.formly-form-container :deep(select.ng-invalid.ng-touched),
+.formly-form-container :deep(textarea.ng-invalid.ng-touched) {
+  border-color: #e53e3e;
+}
+
+.formly-form-container :deep(.invalid-feedback),
+.formly-form-container :deep(formly-validation-message) {
+  color: #e53e3e;
+  font-size: 0.85rem;
+  margin-top: 4px;
+}
+
+.formly-form-container :deep(textarea) {
+  min-height: 100px;
+  resize: vertical;
+}
+
+/* Checkbox and Radio styling */
+.formly-form-container :deep(.form-check) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.formly-form-container :deep(.form-check-input) {
+  width: auto;
+  margin: 0;
+}
+
+.formly-form-container :deep(.form-check-label) {
+  margin: 0;
+  font-weight: normal;
+}
+
+/* No Workflows State */
+.no-workflows {
+  text-align: center;
+  padding: 60px 20px;
+  background: #f7fafc;
+  border-radius: 8px;
+  border: 1px dashed #cbd5e0;
+}
+
+.no-workflows p {
+  color: #718096;
+  margin-bottom: 16px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .workflow-cards {
+    grid-template-columns: 1fr;
+  }
+  
+  .step-navigation {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .step-navigation .btn {
+    width: 100%;
+  }
+}

@@ -13,9 +13,6 @@
         "placeholder": "Choose a brand...",
         "required": false,
         "options": []
-      },
-      "hooks": {
-        "onInit": "loadBrands"
       }
     },
 
@@ -24,7 +21,7 @@
       "type": "table",
       "templateOptions": {
         "label": "Brand Summary",
-        "columns": ["nameEn", "nameAr", "fileCount", "source"],
+        "columns": [ "nameEn", "nameAr", "fileCount", "source" ],
         "columnHeaders": {
           "nameEn": "Brand (English)",
           "nameAr": "Brand (Arabic)",
@@ -40,20 +37,14 @@
         }
       }
     },
-
     {
-      "key": "newBrand",
+      "key": "newBrands",
       "type": "repeat",
       "templateOptions": {
         "label": "Add New Brands",
         "addText": "➕ Add New Brand",
         "removeText": "❌ Remove",
-        "saveText": "✓ Save Brand",
-        "addButtonPosition": "top-right",
-        "itemLabel": "Brand",
-        "titleField": "brandNameEn",
-        "subtitleField": "brandNameAr",
-        "requiredFields": ["brandNameEn", "brandNameAr"]
+        "itemLabel": "Brand"
       },
       "fieldArray": {
         "fieldGroup": [
@@ -73,19 +64,6 @@
               "label": "Brand Name (Arabic)",
               "placeholder": "أدخل اسم العلامة التجارية بالعربية",
               "required": true
-            }
-          },
-          {
-            "key": "attachments",
-            "type": "file",
-            "templateOptions": {
-              "label": "Brand Attachments",
-              "multiple": true,
-              "required": false,
-              "accept": ".pdf,.jpg,.png,.doc,.docx",
-              "uploadEndpoint": "/api/Brand/upload",
-              "uploadMultipleEndpoint": "/api/Brand/upload-multiple",
-              "deleteEndpoint": "/api/Brand/files"
             }
           }
         ]
