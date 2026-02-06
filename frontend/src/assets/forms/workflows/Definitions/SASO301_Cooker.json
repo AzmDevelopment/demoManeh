@@ -1,0 +1,74 @@
+{
+  "certificationId": "SASO301_Cooker",
+  "name": "SASO Test - Brand & Product Registration",
+  "description": "Test workflow for brand and product registration with classifications, measurements, and models",
+  "version": "1.0",
+
+  "metadata": {
+    "workflowCode": "SASO_TEST",
+    "applicableCertificateTypes": ["test_type"],
+    "estimatedTotalDurationDays": 3,
+    "complexity": "medium",
+    "requiresFactoryVisit": false
+  },
+
+  "steps": [
+    {
+      "stepRef": "workflows/Steps/certificate_specific/SASO_demo/saso_test_step1_types",
+      "overrides": {
+        "nextStep": "saso_test_step2_brands"
+      }
+    },
+    {
+      "stepRef": "workflows/Steps/certificate_specific/SASO_demo/saso_test_step2_brands",
+      "overrides": {
+        "nextStep": "saso_test_step3_products"
+      }
+    },
+      {
+      "stepRef": "workflows/Steps/certificate_specific/SASO_demo/saso_test_step3_products",
+      "overrides": {
+        "nextStep": "completed"
+      }
+    },
+    {
+      "stepId": "completed",
+      "name": "Application Submitted",
+      "actor": "system",
+      "type": "system_action",
+      "systemAction": "submitApplication",
+      "status": "completed"
+    }
+  ],
+
+  "workflowConfig": {
+    "isLinear": true,
+    "allowParallelExecution": false,
+    "requiresApprovalAtEachStep": false,
+    "autoEscalationEnabled": false
+  },
+
+  "slaConfig": {
+    "totalSLADays": 3,
+    "stepSLAs": {
+      "saso_test_step1_brands": 24,
+      "saso_test_step2_products": 48
+    }
+  },
+
+  "notifications": {
+    "onStepComplete": true,
+    "onWorkflowComplete": true,
+    "onSendBack": false,
+    "recipients": ["applicant"]
+  },
+
+  "permissions": {
+    "customer": {
+      "canStartWorkflow": true,
+      "canEditSteps": ["saso_test_step1_brands", "saso_test_step2_products"],
+      "canSendBack": false,
+      "canCancel": true
+    }
+  }
+}

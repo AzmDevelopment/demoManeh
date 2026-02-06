@@ -1,0 +1,101 @@
+{
+  "stepId": "saso_test_step2_brands",
+  "name": "Brand Management",
+  "actor": "customer",
+  "description": "Select existing brands or add new ones with attachments",
+
+  "fields": [
+    {
+      "key": "selectedBrand",
+      "type": "select",
+      "templateOptions": {
+        "label": "Select Existing Brand",
+        "placeholder": "Choose a brand...",
+        "required": false,
+        "options": []
+      },
+      "hooks": {
+        "onInit": "loadBrands"
+      }
+    },
+
+    {
+      "key": "brandTable",
+      "type": "table",
+      "templateOptions": {
+        "label": "Brand Summary",
+        "columns": ["nameEn", "nameAr", "fileCount", "source"],
+        "columnHeaders": {
+          "nameEn": "Brand (English)",
+          "nameAr": "Brand (Arabic)",
+          "fileCount": "Files",
+          "source": "Source"
+        },
+        "emptyMessage": "No brands added yet. Select an existing brand or add a new one.",
+        "badgeColumns": {
+          "source": {
+            "Existing": "bg-info",
+            "New": "bg-success"
+          }
+        }
+      }
+    },
+
+    {
+      "key": "newBrand",
+      "type": "repeat",
+      "templateOptions": {
+        "label": "Add New Brands",
+        "addText": "➕ Add New Brand",
+        "removeText": "❌ Remove",
+        "saveText": "✓ Save Brand",
+        "addButtonPosition": "top-right",
+        "itemLabel": "Brand",
+        "titleField": "brandNameEn",
+        "subtitleField": "brandNameAr",
+        "requiredFields": ["brandNameEn", "brandNameAr"]
+      },
+      "fieldArray": {
+        "fieldGroup": [
+          {
+            "key": "brandNameEn",
+            "type": "input",
+            "templateOptions": {
+              "label": "Brand Name (English)",
+              "placeholder": "Enter brand name in English",
+              "required": true
+            }
+          },
+          {
+            "key": "brandNameAr",
+            "type": "input",
+            "templateOptions": {
+              "label": "Brand Name (Arabic)",
+              "placeholder": "أدخل اسم العلامة التجارية بالعربية",
+              "required": true
+            }
+          },
+          {
+            "key": "attachments",
+            "type": "file",
+            "templateOptions": {
+              "label": "Brand Attachments",
+              "multiple": true,
+              "required": false,
+              "accept": ".pdf,.jpg,.png,.doc,.docx",
+              "uploadEndpoint": "/api/Brand/upload",
+              "uploadMultipleEndpoint": "/api/Brand/upload-multiple",
+              "deleteEndpoint": "/api/Brand/files"
+            }
+          }
+        ]
+      }
+    }
+  ],
+
+  "stepConfig": {
+    "canSendBack": false,
+    "nextStep": "saso_test_step3_products",
+    "estimatedDurationHours": 24
+  }
+}

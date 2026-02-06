@@ -1,0 +1,32 @@
+{
+  "stepId": "saso_test_step1_types",
+  "name": "Type Selection",
+  "actor": "customer",
+  "description": "Select existing types",
+
+  "fields": [
+    {
+      "key": "selectedType",
+      "type": "select",
+      "templateOptions": {
+        "label": "Select Existing Type",
+        "placeholder": "Choose a type...",
+        "required": false,
+        "options": [
+           { "value": "IEC", "label": "IEC" },
+          { "value": "COC", "label": "COC" },
+          { "value": "QML", "label": "QML" }
+        ]
+      }
+     
+    }
+
+  
+  ],
+
+  "stepConfig": {
+    "canSendBack": false,
+    "nextStep": "saso_test_step2_brands",
+    "estimatedDurationHours": 24
+  }
+}
