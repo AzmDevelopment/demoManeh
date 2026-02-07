@@ -1,10 +1,9 @@
-import { Component, OnInit, ChangeDetectorRef, PLATFORM_ID, Inject } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, PLATFORM_ID, Inject, ViewChild } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
-import { ReactiveFormsModule, FormGroup } from '@angular/forms';
-import { FormlyModule, FormlyFieldConfig } from '@ngx-formly/core';
-import { FormlyBootstrapModule } from '@ngx-formly/bootstrap';
+import { FormsModule } from '@angular/forms';
+import { JsonFormComponent, FormFieldDefinition } from '../json-form/json-form.component';
 import { WorkflowService } from '../../services/workflow.service';
 import { WorkflowHooksService } from '../../services/workflow-hooks.service';
 
@@ -13,16 +12,17 @@ import { WorkflowHooksService } from '../../services/workflow-hooks.service';
   standalone: true,
   imports: [
     CommonModule, 
-    ReactiveFormsModule, 
+    FormsModule, 
     RouterLink,
-    FormlyModule,
-    FormlyBootstrapModule
+    JsonFormComponent
   ],
   providers: [WorkflowService, WorkflowHooksService],
   templateUrl: './workflow-step.component.html',
   styleUrls: ['./workflow-step.component.css']
 })
 export class WorkflowStepComponent implements OnInit {
+  @ViewChild(JsonFormComponent) jsonFormComponent!: JsonFormComponent;
+  
   instanceId: string = '';
   stepId: string = '';
 
@@ -30,19 +30,15 @@ export class WorkflowStepComponent implements OnInit {
   stepDefinition: any = null;
   currentData: any = {};
 
-  // Formly configuration
-  form = new FormGroup({});
+  // Form state
   model: any = {};
-  fields: FormlyFieldConfig[] = [];
+  fields: FormFieldDefinition[] = [];
 
   loading = true;
   submitting = false;
   validating = false;
   error: string | null = null;
   validationErrors: any[] = [];
-
-  // Store uploaded files
-  uploadedFiles: Map<string, File[]> = new Map();
 
   // Store loaded hooks for this step
   private stepHooks: any = null;
@@ -105,17 +101,16 @@ export class WorkflowStepComponent implements OnInit {
       // Initialize model with current data
       this.model = { ...this.currentData };
 
-      // Build formly fields from step definition
-      const convertedFields = this.buildFormlyFields(this.stepDefinition.fields || []);
+      // Convert fields
+      const convertedFields = this.convertFields(this.stepDefinition.fields || []);
 
-      // Load and execute hooks BEFORE setting fields
-      // This ensures options are populated before the form renders
+      // Load and execute hooks
       await this.loadAndExecuteHooks(convertedFields);
 
-      // Now set the fields with populated options
+      // Set the fields
       this.fields = convertedFields;
       
-      console.log('Fields set after hooks. First field options:', this.fields[0]?.props?.options);
+      console.log('Fields set after hooks:', this.fields);
 
       this.loading = false;
       this.cdr.detectChanges();
@@ -128,53 +123,26 @@ export class WorkflowStepComponent implements OnInit {
   }
 
   /**
-   * Build FormlyFieldConfig array from JSON step definition
+   * Convert JSON fields to FormFieldDefinition format
    */
-  private buildFormlyFields(jsonFields: any[]): FormlyFieldConfig[] {
-    return jsonFields.map(field => this.convertToFormlyField(field));
-  }
-
-  /**
-   * Convert a single JSON field to FormlyFieldConfig
-   */
-  private convertToFormlyField(field: any): FormlyFieldConfig {
-    const formlyField: FormlyFieldConfig = {
+  private convertFields(jsonFields: any[]): FormFieldDefinition[] {
+    return jsonFields.map(field => ({
       key: field.key,
       type: field.type,
-      props: {
-        label: field.templateOptions?.label || '',
-        placeholder: field.templateOptions?.placeholder || '',
-        required: field.templateOptions?.required || false,
-        options: field.templateOptions?.options || [],
-        // Pass through all templateOptions
-        ...field.templateOptions
-      },
-      fieldGroup: field.fieldGroup ? this.buildFormlyFields(field.fieldGroup) : undefined,
-      fieldArray: field.fieldArray ? {
-        fieldGroup: field.fieldArray.fieldGroup ? this.buildFormlyFields(field.fieldArray.fieldGroup) : undefined
-      } : undefined
-    };
-
-    // Store hooks reference for later execution
-    if (field.hooks) {
-      (formlyField as any)._hooks = field.hooks;
-      console.log(`Field '${field.key}' has hooks configured:`, field.hooks);
-    }
-
-    // Handle hide expressions
-    if (field.hideExpression) {
-      formlyField.expressions = {
-        hide: field.hideExpression
-      };
-    }
-
-    return formlyField;
+      defaultValue: field.defaultValue,
+      templateOptions: field.templateOptions || {},
+      hooks: field.hooks,
+      showWhen: field.showWhen,
+      hideWhen: field.hideWhen,
+      validation: field.validation,
+      fieldGroup: field.fieldGroup ? this.convertFields(field.fieldGroup) : undefined
+    }));
   }
 
   /**
    * Load hooks and execute onInit hooks for fields
    */
-  private async loadAndExecuteHooks(fields?: FormlyFieldConfig[]): Promise<void> {
+  private async loadAndExecuteHooks(fields: FormFieldDefinition[]): Promise<void> {
     const workflowId = this.instance?.definitionId;
     const stepId = this.stepDefinition?.stepId;
 
@@ -187,15 +155,11 @@ export class WorkflowStepComponent implements OnInit {
       return;
     }
 
-    console.log(`Looking up hooks for: ${workflowId}/${stepId}`);
-
     this.stepHooks = this.workflowHooksService.getHooksForStep(workflowId, stepId);
 
     if (this.stepHooks) {
       console.log('✅ Hooks loaded:', Object.keys(this.stepHooks));
-      
-      const fieldsToProcess = fields || this.fields;
-      await this.processFieldHooks(fieldsToProcess);
+      await this.processFieldHooks(fields);
     } else {
       console.log('❌ No hooks found for this step');
     }
@@ -204,54 +168,72 @@ export class WorkflowStepComponent implements OnInit {
   /**
    * Process onInit hooks for fields recursively
    */
-  private async processFieldHooks(fields: FormlyFieldConfig[]): Promise<void> {
-    if (!fields || !this.stepHooks) {
-      console.log('processFieldHooks: No fields or stepHooks');
-      return;
-    }
+  private async processFieldHooks(fields: FormFieldDefinition[]): Promise<void> {
+    if (!fields || !this.stepHooks) return;
 
     for (const field of fields) {
-      const fieldHooks = (field as any)._hooks;
-      
-      if (fieldHooks?.onInit) {
-        const hookName = fieldHooks.onInit;
-        console.log(`Looking for hook function '${hookName}'`);
+      if (field.hooks?.onInit) {
+        const hookName = field.hooks.onInit;
         
         if (this.stepHooks[hookName]) {
           console.log(`✅ Executing onInit hook '${hookName}' for field '${field.key}'`);
           try {
-            await this.stepHooks[hookName](field, this.model, {}, this.http);
-            console.log(`Hook '${hookName}' executed. field.props.options:`, field.props?.options);
+            const fieldProxy = {
+              key: field.key,
+              props: field.templateOptions
+            };
+            await this.stepHooks[hookName](fieldProxy, this.model, {}, this.http);
+            
+            if (fieldProxy.props?.options) {
+              field.templateOptions = field.templateOptions || {};
+              field.templateOptions.options = fieldProxy.props.options;
+            }
+            console.log(`Hook executed. Options:`, field.templateOptions?.options);
           } catch (error) {
             console.error(`❌ Error executing hook '${hookName}':`, error);
           }
-        } else {
-          console.log(`❌ Hook function '${hookName}' not found in stepHooks`);
         }
       }
 
-      // Setup onChange hooks
-      if (fieldHooks?.onChange && this.stepHooks[fieldHooks.onChange]) {
-        const onChangeHookName = fieldHooks.onChange;
-        const originalHooks = field.hooks || {};
-        field.hooks = {
-          ...originalHooks,
-          onInit: (f: FormlyFieldConfig) => {
-            f.formControl?.valueChanges.subscribe(value => {
-              console.log(`Field '${f.key}' changed to:`, value);
-              this.model[f.key as string] = value;
-              this.stepHooks[onChangeHookName](f, this.model, {}, this.http);
-              this.cdr.detectChanges();
-            });
-          }
-        };
-      }
-
-      // Process nested fields
       if (field.fieldGroup) {
         await this.processFieldHooks(field.fieldGroup);
       }
     }
+  }
+
+  /**
+   * Handle field changes
+   */
+  onFieldChange(event: { key: string; value: any }): void {
+    console.log('onFieldChange called:', event.key, event.value);
+    
+    const field = this.fields.find(f => f.key === event.key);
+    if (field?.hooks?.onChange && this.stepHooks?.[field.hooks.onChange]) {
+      console.log(`Executing onChange hook '${field.hooks.onChange}' for field '${event.key}'`);
+      
+      const fieldProxy = {
+        key: field.key,
+        props: field.templateOptions
+      };
+      
+      // Execute the hook - this modifies the model directly
+      this.stepHooks[field.hooks.onChange](fieldProxy, this.model, {}, this.http);
+      
+      // Force a new reference to trigger change detection
+      this.model = { ...this.model };
+      
+      console.log('Model after onChange hook:', this.model);
+      
+      // Trigger change detection
+      this.cdr.detectChanges();
+    }
+  }
+
+  /**
+   * Handle model updates from the form component
+   */
+  onModelChange(newModel: Record<string, any>): void {
+    this.model = newModel;
   }
 
   /**
@@ -328,7 +310,7 @@ export class WorkflowStepComponent implements OnInit {
   }
 
   /**
-   * Check if submit is allowed based on validation config
+   * Check if submit is allowed
    */
   get canSubmit(): boolean {
     if (this.submitting || this.validating) return false;
@@ -341,6 +323,8 @@ export class WorkflowStepComponent implements OnInit {
       
       if (Array.isArray(tableData)) {
         return tableData.length >= minRequired;
+      } else if (minRequired > 0) {
+        return false;
       }
     }
 

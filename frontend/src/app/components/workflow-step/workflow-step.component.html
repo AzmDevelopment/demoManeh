@@ -60,13 +60,14 @@
         </div>
       }
 
-      <!-- Form using ngx-formly -->
-      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="step-form">
-        <formly-form
-          [form]="form"
+      <!-- Form using JSON Form Component -->
+      <div class="step-form">
+        <app-json-form
           [fields]="fields"
-          [model]="model">
-        </formly-form>
+          [model]="model"
+          (modelChange)="onModelChange($event)"
+          (fieldChange)="onFieldChange($event)">
+        </app-json-form>
 
         <!-- Form Actions -->
         <div class="form-actions mt-4">
@@ -101,8 +102,9 @@
           </button>
 
           <button
-            type="submit"
+            type="button"
             class="btn btn-primary"
+            (click)="onSubmit()"
             [disabled]="!canSubmit"
             [title]="!canSubmit && stepDefinition?.stepConfig?.validation?.message ? stepDefinition.stepConfig.validation.message : ''"
           >
@@ -119,7 +121,7 @@
             <i class="bi bi-info-circle"></i> {{ stepDefinition.stepConfig.validation.message }}
           </div>
         }
-      </form>
+      </div>
 
       <!-- Workflow Progress -->
       <div class="workflow-progress mt-5">

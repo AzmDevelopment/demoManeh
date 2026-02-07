@@ -2,7 +2,7 @@
   "stepId": "saso_test_step2_brands",
   "name": "Brand Management",
   "actor": "customer",
-  "description": "Select existing brands or add new ones with attachments",
+  "description": "Select existing brands or add new ones for your products",
 
   "fields": [
     {
@@ -10,7 +10,7 @@
       "type": "select",
       "templateOptions": {
         "label": "Select Existing Brand",
-        "placeholder": "Choose a brand...",
+        "placeholder": "Choose a brand to add...",
         "required": false,
         "options": []
       },
@@ -24,28 +24,30 @@
       "key": "brandTable",
       "type": "table",
       "templateOptions": {
-        "label": "Brand Summary",
+        "label": "Selected Brands",
         "columns": [ "nameEn", "nameAr", "source" ],
         "columnHeaders": {
           "nameEn": "Brand (English)",
           "nameAr": "Brand (Arabic)",
           "source": "Source"
         },
-        "emptyMessage": "No brands added yet. Select an existing brand or add a new one.",
+        "emptyMessage": "No brands added yet. Select an existing brand or add a new one below.",
         "badgeColumns": {
           "source": {
             "Existing": "bg-info",
             "New": "bg-success"
           }
-        }
+        },
+        "allowDelete": true
       }
     },
+    
     {
       "key": "newBrand",
       "type": "add-to-table",
       "templateOptions": {
         "addText": "➕ Add New Brand",
-        "saveText": "💾 Save",
+        "saveText": "💾 Save Brand",
         "cancelText": "✕ Cancel",
         "targetTableKey": "brandTable",
         "fieldMapping": {
@@ -63,7 +65,8 @@
           "templateOptions": {
             "label": "Brand Name (English)",
             "placeholder": "Enter brand name in English",
-            "required": true
+            "required": true,
+            "maxLength": 100
           }
         },
         {
@@ -72,7 +75,8 @@
           "templateOptions": {
             "label": "Brand Name (Arabic)",
             "placeholder": "أدخل اسم العلامة التجارية بالعربية",
-            "required": true
+            "required": true,
+            "maxLength": 100
           }
         }
       ]
@@ -80,13 +84,13 @@
   ],
 
   "stepConfig": {
-    "canSendBack": false,
+    "canSendBack": true,
     "nextStep": "saso_test_step3_products",
     "estimatedDurationHours": 24,
     "validation": {
       "type": "brandTable",
       "minRequired": 1,
-      "message": "Please select an existing brand or add a new one before proceeding"
+      "message": "Please select at least one brand or add a new one before proceeding"
     }
   }
 }

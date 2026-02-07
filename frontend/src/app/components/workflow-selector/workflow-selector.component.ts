@@ -1,9 +1,8 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { FormlyModule, FormlyFieldConfig } from '@ngx-formly/core';
-import { FormlyBootstrapModule } from '@ngx-formly/bootstrap';
+import { FormsModule } from '@angular/forms';
+import { JsonFormComponent, FormFieldDefinition } from '../json-form/json-form.component';
 import { WorkflowHooksService } from '../../services/workflow-hooks.service';
 
 export interface WorkflowDefinition {
@@ -40,20 +39,28 @@ export interface StepDefinition {
     canSendBack: boolean;
     estimatedDurationHours: number;
     nextStep: string;
-    isMandatory: boolean;
+    isMandatory?: boolean;
+    validation?: {
+      type: string;
+      minRequired?: number;
+      message?: string;
+    };
   };
 }
 
 @Component({
   selector: 'app-workflow-selector',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormlyModule, FormlyBootstrapModule],
+  imports: [CommonModule, FormsModule, JsonFormComponent],
   templateUrl: './workflow-selector.component.html',
   styleUrl: './workflow-selector.component.css'
 })
 export class WorkflowSelectorComponent implements OnInit {
+  @ViewChild(JsonFormComponent) jsonFormComponent!: JsonFormComponent;
+  
   private http = inject(HttpClient);
   private workflowHooksService = inject(WorkflowHooksService);
+  private cdr = inject(ChangeDetectorRef);
 
   // Backend API base URL
   private apiUrl = '/api/Workflow';
@@ -65,10 +72,9 @@ export class WorkflowSelectorComponent implements OnInit {
   loading = signal<boolean>(false);
   error = signal<string | null>(null);
 
-  // ngx-formly form state
-  form = new FormGroup({});
+  // Form state
   model: Record<string, any> = {};
-  fields = signal<FormlyFieldConfig[]>([]);
+  fields = signal<FormFieldDefinition[]>([]);
 
   // Store form data for each step
   stepFormData: Record<string, any> = {};
@@ -82,7 +88,6 @@ export class WorkflowSelectorComponent implements OnInit {
 
   /**
    * Load workflow definitions from backend API
-   * Endpoint: GET /api/Workflow/definitions
    */
   loadWorkflowDefinitions(): void {
     this.loading.set(true);
@@ -111,7 +116,6 @@ export class WorkflowSelectorComponent implements OnInit {
 
   /**
    * Load first step definition from backend API
-   * Endpoint: GET /api/Workflow/steps/{stepRef}
    */
   private loadFirstStep(workflow: WorkflowDefinition): void {
     const firstStep = workflow.steps[0];
@@ -119,7 +123,6 @@ export class WorkflowSelectorComponent implements OnInit {
     if (firstStep.stepRef) {
       this.loading.set(true);
       
-      // Use backend API to get step definition
       this.http.get<StepDefinition>(`${this.apiUrl}/steps/${encodeURIComponent(firstStep.stepRef)}`).subscribe({
         next: async (stepDef: StepDefinition) => {
           await this.setCurrentStep(stepDef);
@@ -137,29 +140,63 @@ export class WorkflowSelectorComponent implements OnInit {
   private async setCurrentStep(stepDef: StepDefinition): Promise<void> {
     this.currentStep.set(stepDef);
     
-    // Reset form for new step
-    this.form = new FormGroup({});
-    
     // Load saved data for this step if exists, otherwise empty model
     this.model = this.stepFormData[stepDef.stepId] || {};
     
-    // Convert fields from JSON to formly format (with hooks stored)
-    const convertedFields = this.convertFieldsToFormly(stepDef.fields);
+    // Convert fields from JSON format
+    const convertedFields = this.convertFields(stepDef.fields);
     
-    // Load and execute hooks BEFORE setting fields signal
-    // This ensures options are populated before the form renders
+    console.log('=== CONVERTED FIELDS ===');
+    convertedFields.forEach(f => {
+      console.log(`Field: ${f.key}, Type: ${f.type}`);
+      console.log(`  templateOptions:`, f.templateOptions);
+    });
+    
+    // Load and execute hooks BEFORE setting fields
     await this.loadAndExecuteHooks(stepDef, convertedFields);
     
-    // Now set the fields signal with the modified fields
-    this.fields.set(convertedFields);
+    // Set the fields - create new array to ensure signal triggers update
+    this.fields.set([...convertedFields]);
     
-    console.log('Fields set after hooks. First field options:', convertedFields[0]?.props?.options);
+    console.log('Fields signal updated with', convertedFields.length, 'fields');
+    
+    // Force change detection
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Convert JSON fields to FormFieldDefinition format
+   */
+  private convertFields(jsonFields: any[]): FormFieldDefinition[] {
+    return jsonFields.map(field => {
+      // Deep copy templateOptions to ensure all nested properties are preserved
+      const templateOptions = field.templateOptions ? JSON.parse(JSON.stringify(field.templateOptions)) : {};
+      
+      console.log(`Converting field '${field.key}' of type '${field.type}'`);
+      console.log(`  templateOptions:`, templateOptions);
+      if (templateOptions.columns) {
+        console.log(`  columns:`, templateOptions.columns);
+      }
+      
+      const converted: FormFieldDefinition = {
+        key: field.key,
+        type: field.type,
+        defaultValue: field.defaultValue,
+        templateOptions: templateOptions,
+        hooks: field.hooks,
+        showWhen: field.showWhen,
+        hideWhen: field.hideWhen,
+        validation: field.validation,
+        fieldGroup: field.fieldGroup ? this.convertFields(field.fieldGroup) : undefined
+      };
+      return converted;
+    });
   }
 
   /**
    * Load and execute hooks for the current step
    */
-  private async loadAndExecuteHooks(stepDef: StepDefinition, fields: FormlyFieldConfig[]): Promise<void> {
+  private async loadAndExecuteHooks(stepDef: StepDefinition, fields: FormFieldDefinition[]): Promise<void> {
     const workflow = this.selectedWorkflow();
     if (!workflow) return;
 
@@ -181,26 +218,33 @@ export class WorkflowSelectorComponent implements OnInit {
   /**
    * Process onInit hooks for fields
    */
-  private async processFieldHooks(fields: FormlyFieldConfig[]): Promise<void> {
+  private async processFieldHooks(fields: FormFieldDefinition[]): Promise<void> {
     if (!fields || !this.stepHooks) return;
 
     for (const field of fields) {
-      const fieldHooks = (field as any)._hooks;
-      
-      if (fieldHooks?.onInit) {
-        const hookName = fieldHooks.onInit;
+      if (field.hooks?.onInit) {
+        const hookName = field.hooks.onInit;
         console.log(`Looking for hook '${hookName}' for field '${field.key}'`);
         
         if (this.stepHooks[hookName]) {
           console.log(`✅ Executing onInit hook '${hookName}' for field '${field.key}'`);
           try {
-            await this.stepHooks[hookName](field, this.model, {}, this.http);
-            console.log(`Hook '${hookName}' executed. field.props.options:`, field.props?.options);
+            // Create a field-like object for the hook
+            const fieldProxy = {
+              key: field.key,
+              props: field.templateOptions
+            };
+            await this.stepHooks[hookName](fieldProxy, this.model, {}, this.http);
+            
+            // Update the field's options if they were set
+            if (fieldProxy.props?.options) {
+              field.templateOptions = field.templateOptions || {};
+              field.templateOptions.options = fieldProxy.props.options;
+            }
+            console.log(`Hook '${hookName}' executed. Options:`, field.templateOptions?.options);
           } catch (error) {
             console.error(`❌ Error executing hook '${hookName}':`, error);
           }
-        } else {
-          console.log(`❌ Hook function '${hookName}' not found`);
         }
       }
 
@@ -211,85 +255,41 @@ export class WorkflowSelectorComponent implements OnInit {
     }
   }
 
-  private convertFieldsToFormly(jsonFields: any[]): FormlyFieldConfig[] {
-    return jsonFields.map(field => {
-      const formlyField: FormlyFieldConfig = {
+  /**
+   * Handle field changes (for onChange hooks)
+   */
+  onFieldChange(event: { key: string; value: any }): void {
+    console.log('onFieldChange called:', event.key, event.value);
+    
+    const field = this.fields().find(f => f.key === event.key);
+    if (field?.hooks?.onChange && this.stepHooks?.[field.hooks.onChange]) {
+      console.log(`Executing onChange hook '${field.hooks.onChange}' for field '${event.key}'`);
+      
+      const fieldProxy = {
         key: field.key,
-        type: field.type,
-        props: this.convertProps(field)
+        props: field.templateOptions
       };
-
-      // Store hooks reference for later execution
-      if (field.hooks) {
-        (formlyField as any)._hooks = field.hooks;
-        console.log(`Field '${field.key}' has hooks:`, field.hooks);
-      }
-
-      // Handle fieldArray for repeat type
-      if (field.fieldArray && field.type === 'repeat') {
-        formlyField.fieldArray = {
-          fieldGroup: this.convertFieldsToFormly(field.fieldArray.fieldGroup || [])
-        };
-      }
-
-      // Handle fieldGroup for add-to-table type
-      if (field.fieldGroup && field.type === 'add-to-table') {
-        formlyField.fieldGroup = this.convertFieldsToFormly(field.fieldGroup);
-      }
-
-      return formlyField;
-    });
+      
+      // Execute the hook - this modifies the model directly
+      this.stepHooks[field.hooks.onChange](fieldProxy, this.model, {}, this.http);
+      
+      console.log('Model after onChange hook:', JSON.stringify(this.model));
+      
+      // IMPORTANT: Create a completely new model object to trigger change detection
+      this.model = JSON.parse(JSON.stringify(this.model));
+      
+      console.log('Model reference replaced, brandTable:', this.model['brandTable']);
+      
+      // Trigger change detection
+      this.cdr.detectChanges();
+    }
   }
 
-  private convertProps(field: any): any {
-    const props: any = {};
-
-    if (field.templateOptions) {
-      const tpl = field.templateOptions;
-      
-      if (tpl.label) props.label = tpl.label;
-      if (tpl.placeholder) props.placeholder = tpl.placeholder;
-      if (tpl.required !== undefined) props.required = tpl.required;
-      if (tpl.options) props.options = tpl.options;
-      if (tpl.type) props.type = tpl.type;
-      if (tpl.rows) props.rows = tpl.rows;
-      if (tpl.accept) props.accept = tpl.accept;
-      if (tpl.multiple !== undefined) props.multiple = tpl.multiple;
-      
-      // Handle table-specific properties
-      if (field.type === 'table') {
-        if (tpl.columns) props.columns = tpl.columns;
-        if (tpl.columnHeaders) props.columnHeaders = tpl.columnHeaders;
-        if (tpl.emptyMessage) props.emptyMessage = tpl.emptyMessage;
-        if (tpl.badgeColumns) props.badgeColumns = tpl.badgeColumns;
-      }
-
-      // Handle repeat-specific properties
-      if (field.type === 'repeat') {
-        if (tpl.addText) props.addText = tpl.addText;
-        if (tpl.removeText) props.removeText = tpl.removeText;
-        if (tpl.saveText) props.saveText = tpl.saveText;
-        if (tpl.itemLabel) props.itemLabel = tpl.itemLabel;
-        if (tpl.titleField) props.titleField = tpl.titleField;
-        if (tpl.subtitleField) props.subtitleField = tpl.subtitleField;
-      }
-
-      // Handle add-to-table specific properties
-      if (field.type === 'add-to-table') {
-        if (tpl.addText) props.addText = tpl.addText;
-        if (tpl.saveText) props.saveText = tpl.saveText;
-        if (tpl.cancelText) props.cancelText = tpl.cancelText;
-        if (tpl.targetTableKey) props.targetTableKey = tpl.targetTableKey;
-        if (tpl.fieldMapping) props.fieldMapping = tpl.fieldMapping;
-        if (tpl.defaults) props.defaults = tpl.defaults;
-      }
-    }
-
-    if (field.props) {
-      Object.assign(props, field.props);
-    }
-
-    return props;
+  /**
+   * Handle model updates from the form component
+   */
+  onModelChange(newModel: Record<string, any>): void {
+    this.model = newModel;
   }
 
   private saveCurrentStepData(): void {
@@ -303,7 +303,6 @@ export class WorkflowSelectorComponent implements OnInit {
    * Load next step definition from backend API
    */
   loadNextStep(): void {
-    // Save current step data before navigating
     this.saveCurrentStepData();
 
     const workflow = this.selectedWorkflow();
@@ -317,7 +316,6 @@ export class WorkflowSelectorComponent implements OnInit {
         this.loading.set(true);
         this.currentStepIndex.set(nextIndex);
         
-        // Use backend API to get step definition
         this.http.get<StepDefinition>(`${this.apiUrl}/steps/${encodeURIComponent(nextStepDef.stepRef)}`).subscribe({
           next: async (stepDef: StepDefinition) => {
             await this.setCurrentStep(stepDef);
@@ -342,7 +340,6 @@ export class WorkflowSelectorComponent implements OnInit {
    * Load previous step definition from backend API
    */
   loadPreviousStep(): void {
-    // Save current step data before navigating
     this.saveCurrentStepData();
 
     const workflow = this.selectedWorkflow();
@@ -356,7 +353,6 @@ export class WorkflowSelectorComponent implements OnInit {
         this.loading.set(true);
         this.currentStepIndex.set(prevIndex);
         
-        // Use backend API to get step definition
         this.http.get<StepDefinition>(`${this.apiUrl}/steps/${encodeURIComponent(prevStepDef.stepRef)}`).subscribe({
           next: async (stepDef: StepDefinition) => {
             await this.setCurrentStep(stepDef);
@@ -377,7 +373,6 @@ export class WorkflowSelectorComponent implements OnInit {
     this.currentStep.set(null);
     this.currentStepIndex.set(0);
     this.error.set(null);
-    this.form = new FormGroup({});
     this.model = {};
     this.fields.set([]);
     this.stepFormData = {};
@@ -395,7 +390,29 @@ export class WorkflowSelectorComponent implements OnInit {
   }
 
   isFormValid(): boolean {
-    return this.form.valid;
+    // Check table validation from stepConfig
+    const step = this.currentStep();
+    if (step?.stepConfig?.validation) {
+      const validation = step.stepConfig.validation;
+      const tableKey = validation.type;
+      const minRequired = validation.minRequired || 1;
+      const tableData = this.model[tableKey];
+      
+      if (Array.isArray(tableData)) {
+        if (tableData.length < minRequired) {
+          return false;
+        }
+      } else if (minRequired > 0) {
+        return false;
+      }
+    }
+    
+    // Basic validation - check required fields that are visible
+    const requiredFields = this.fields().filter(f => f.templateOptions?.required);
+    return requiredFields.every(f => {
+      const value = this.model[f.key];
+      return value !== undefined && value !== null && value !== '';
+    });
   }
 
   getComplexityClass(complexity: string | undefined): string {
@@ -409,7 +426,7 @@ export class WorkflowSelectorComponent implements OnInit {
   }
 
   onSubmit(): void {
-    if (this.form.valid) {
+    if (this.isFormValid()) {
       this.saveCurrentStepData();
       console.log('Step submitted:', this.model);
       this.loadNextStep();

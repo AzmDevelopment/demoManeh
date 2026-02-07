@@ -108,7 +108,7 @@
           <p>Loading step...</p>
         </div>
       } @else if (currentStep()) {
-        <!-- Current Step Content with ngx-formly Form -->
+        <!-- Current Step Content -->
         <div class="step-content">
           <div class="step-info">
             <h2>{{ currentStep()?.name }}</h2>
@@ -121,14 +121,15 @@
             </div>
           </div>
 
-          <!-- ngx-formly Form -->
+          <!-- JSON Form -->
           @if (fields().length > 0) {
-            <form [formGroup]="form" (ngSubmit)="onSubmit()" class="formly-form-container">
-              <formly-form 
-                [form]="form" 
-                [fields]="fields()" 
-                [model]="model">
-              </formly-form>
+            <div class="json-form-container">
+              <app-json-form
+                [fields]="fields()"
+                [model]="model"
+                (modelChange)="onModelChange($event)"
+                (fieldChange)="onFieldChange($event)">
+              </app-json-form>
 
               <!-- Navigation buttons -->
               <div class="step-navigation">
@@ -140,20 +141,22 @@
                 </button>
                 
                 @if (!isLastStep()) {
-                  <button type="submit" 
+                  <button type="button" 
                           class="btn btn-primary" 
+                          (click)="onSubmit()"
                           [disabled]="!isFormValid()">
                     Next Step →
                   </button>
                 } @else {
-                  <button type="submit" 
+                  <button type="button" 
                           class="btn btn-success" 
+                          (click)="onSubmit()"
                           [disabled]="!isFormValid()">
                     Complete Workflow ✓
                   </button>
                 }
               </div>
-            </form>
+            </div>
           }
         </div>
       } @else if (currentStepIndex() === (selectedWorkflow()?.steps?.length ?? 0) - 1) {

@@ -2,20 +2,80 @@
   "stepId": "saso_test_step1_types",
   "name": "Type Selection",
   "actor": "customer",
-  "description": "Select existing types",
+  "description": "Select the certification type for your product",
 
   "fields": [
     {
       "key": "selectedType",
       "type": "select",
       "templateOptions": {
-        "label": "Select Existing Type",
-        "placeholder": "Choose a type...",
+        "label": "Certification Type",
+        "placeholder": "Choose a certification type...",
         "required": true,
         "options": []
       },
       "hooks": {
         "onInit": "loadTypes"
+      },
+      "validation": {
+        "messages": {
+          "required": "Please select a certification type to proceed"
+        }
+      }
+    },
+    
+    {
+      "key": "applicantName",
+      "type": "input",
+      "templateOptions": {
+        "label": "Applicant Name",
+        "placeholder": "Enter your company or organization name",
+        "required": true,
+        "maxLength": 200
+      },
+      "validation": {
+        "messages": {
+          "required": "Applicant name is required"
+        }
+      }
+    },
+    
+    {
+      "key": "applicantEmail",
+      "type": "input",
+      "templateOptions": {
+        "label": "Email Address",
+        "placeholder": "Enter your email address",
+        "type": "email",
+        "required": true
+      },
+      "validation": {
+        "messages": {
+          "required": "Email address is required"
+        }
+      }
+    },
+    
+    {
+      "key": "applicantPhone",
+      "type": "input",
+      "templateOptions": {
+        "label": "Phone Number",
+        "placeholder": "Enter your phone number",
+        "type": "tel",
+        "required": false
+      }
+    },
+    
+    {
+      "key": "comments",
+      "type": "textarea",
+      "templateOptions": {
+        "label": "Additional Comments",
+        "placeholder": "Enter any additional information or special requirements...",
+        "rows": 4,
+        "maxLength": 1000,
+        "required": false
       }
     }
   ],

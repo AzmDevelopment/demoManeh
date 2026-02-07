@@ -3,6 +3,7 @@
   "name": "Product Management",
   "actor": "customer",
   "description": "Add products with brand, sector, classification, measurements, and models",
+  
   "fields": [
     {
       "key": "existingProduct",
@@ -13,127 +14,203 @@
         "required": false
       },
       "hooks": {
-        "onInit": "loadProducts"
+        "onInit": "loadProducts",
+        "onChange": "onProductSelected"
       }
     },
+    
     {
-      "key": "productBrandId",
-      "type": "select",
+      "key": "productTable",
+      "type": "table",
       "templateOptions": {
-        "label": "Brand",
-        "placeholder": "Choose brand...",
-        "required": true
-      },
-      "hooks": {
-        "onInit": "loadSelectedBrands"
-      },
-      "showInForm": "addProduct"
+        "label": "Added Products",
+        "columns": ["brandName", "sectorName", "classificationName", "modelName", "modelNumber", "source"],
+        "columnHeaders": {
+          "brandName": "Brand",
+          "sectorName": "Sector",
+          "classificationName": "Classification",
+          "modelName": "Model",
+          "modelNumber": "Model #",
+          "source": "Source"
+        },
+        "emptyMessage": "No products added yet. Select an existing product or add a new one below.",
+        "badgeColumns": {
+          "source": {
+            "Existing": "bg-info",
+            "New": "bg-success"
+          }
+        },
+        "allowDelete": true
+      }
     },
+    
     {
-      "key": "sectorId",
-      "type": "select",
+      "key": "newProduct",
+      "type": "add-to-table",
       "templateOptions": {
-        "label": "Sector",
-        "placeholder": "Choose sector...",
-        "required": true
+        "addText": "➕ Add New Product",
+        "saveText": "💾 Save Product",
+        "cancelText": "✕ Cancel",
+        "targetTableKey": "productTable",
+        "fieldMapping": {
+          "productBrandId": "brandName",
+          "sectorId": "sectorName",
+          "classificationId": "classificationName",
+          "modelName": "modelName",
+          "modelNumber": "modelNumber"
+        },
+        "defaults": {
+          "source": "New"
+        }
       },
-      "hooks": {
-        "onInit": "loadSectors"
-      },
-      "showInForm": "addProduct"
+      "fieldGroup": [
+        {
+          "key": "productBrandId",
+          "type": "select",
+          "templateOptions": {
+            "label": "Brand",
+            "placeholder": "Choose brand...",
+            "required": true,
+            "options": []
+          }
+        },
+        {
+          "key": "sectorId",
+          "type": "select",
+          "templateOptions": {
+            "label": "Sector",
+            "placeholder": "Choose sector...",
+            "required": true,
+            "options": []
+          }
+        },
+        {
+          "key": "classificationId",
+          "type": "select",
+          "templateOptions": {
+            "label": "Classification",
+            "placeholder": "Choose classification...",
+            "required": true,
+            "options": []
+          }
+        },
+        {
+          "key": "modelName",
+          "type": "input",
+          "templateOptions": {
+            "label": "Model Name",
+            "placeholder": "Enter model name",
+            "required": true
+          }
+        },
+        {
+          "key": "modelNumber",
+          "type": "input",
+          "templateOptions": {
+            "label": "Model Number",
+            "placeholder": "Enter model number",
+            "required": true
+          }
+        },
+        {
+          "key": "barcode",
+          "type": "input",
+          "templateOptions": {
+            "label": "Barcode",
+            "placeholder": "Enter barcode (optional)",
+            "required": false
+          }
+        }
+      ]
     },
-    {
-      "key": "classificationId",
-      "type": "select",
-      "templateOptions": {
-        "label": "Classification",
-        "placeholder": "Choose classification...",
-        "required": true
-      },
-      "hooks": {
-        "onInit": "loadClassifications"
-      },
-      "showInForm": "addProduct"
-    },
+    
     {
       "key": "hasMeasurement",
       "type": "radio",
+      "defaultValue": "no",
       "templateOptions": {
-        "label": "Does this classification have measurements?",
+        "label": "Does this product have measurements?",
         "required": false,
         "options": [
           { "value": "yes", "label": "Yes" },
           { "value": "no", "label": "No" }
         ]
-      },
-      "defaultValue": "no",
-      "showInForm": "addProduct",
-      "showWhen": "classificationId"
+      }
     },
+    
     {
-      "key": "measurementName",
-      "type": "input",
+      "key": "measurementTable",
+      "type": "table",
+      "showWhen": "hasMeasurementYes",
       "templateOptions": {
-        "label": "Measurement Name",
-        "placeholder": "e.g., Length, Width, Weight",
-        "required": false
-      },
-      "showInForm": "addProduct",
-      "showWhen": "hasMeasurementYes"
+        "label": "Product Measurements",
+        "columns": ["name", "value", "unit"],
+        "columnHeaders": {
+          "name": "Measurement",
+          "value": "Value",
+          "unit": "Unit"
+        },
+        "emptyMessage": "No measurements added yet.",
+        "allowDelete": true
+      }
     },
+    
     {
-      "key": "measurementUnit",
-      "type": "input",
+      "key": "addMeasurement",
+      "type": "add-to-table",
+      "showWhen": "hasMeasurementYes",
       "templateOptions": {
-        "label": "Measurement Unit",
-        "placeholder": "e.g., mm, cm, kg",
-        "required": false
+        "addText": "➕ Add Measurement",
+        "saveText": "💾 Save",
+        "cancelText": "✕ Cancel",
+        "targetTableKey": "measurementTable",
+        "fieldMapping": {
+          "measurementName": "name",
+          "measurementValue": "value",
+          "measurementUnit": "unit"
+        }
       },
-      "showInForm": "addProduct",
-      "showWhen": "hasMeasurementYes"
-    },
-    {
-      "key": "modelName",
-      "type": "input",
-      "templateOptions": {
-        "label": "Model Name",
-        "placeholder": "Enter model name",
-        "required": false
-      },
-      "showInForm": "addProduct",
-      "showWhen": "classificationId"
-    },
-    {
-      "key": "modelNumber",
-      "type": "input",
-      "templateOptions": {
-        "label": "Model Number",
-        "placeholder": "Enter model number",
-        "required": false
-      },
-      "showInForm": "addProduct",
-      "showWhen": "classificationId"
-    },
-    {
-      "key": "barcode",
-      "type": "input",
-      "templateOptions": {
-        "label": "Barcode",
-        "placeholder": "Enter barcode",
-        "required": false
-      },
-      "showInForm": "addProduct",
-      "showWhen": "classificationId"
+      "fieldGroup": [
+        {
+          "key": "measurementName",
+          "type": "input",
+          "templateOptions": {
+            "label": "Measurement Name",
+            "placeholder": "e.g., Length, Width, Weight",
+            "required": true
+          }
+        },
+        {
+          "key": "measurementValue",
+          "type": "input",
+          "templateOptions": {
+            "label": "Value",
+            "placeholder": "Enter value",
+            "type": "number",
+            "required": true
+          }
+        },
+        {
+          "key": "measurementUnit",
+          "type": "input",
+          "templateOptions": {
+            "label": "Unit",
+            "placeholder": "e.g., mm, cm, kg",
+            "required": true
+          }
+        }
+      ]
     }
   ],
+  
   "stepConfig": {
-    "canSendBack": false,
+    "canSendBack": true,
     "nextStep": "completed",
     "estimatedDurationHours": 48,
     "validation": {
-      "type": "products",
+      "type": "productTable",
       "minRequired": 1,
-      "message": "Please add at least one product to submit"
+      "message": "Please add at least one product before proceeding"
     }
   }
 }
