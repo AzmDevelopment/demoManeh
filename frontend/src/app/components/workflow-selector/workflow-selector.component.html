@@ -12,7 +12,7 @@
     <div class="workflow-list">
       <h1>Available Workflows</h1>
       <p class="subtitle">Select a workflow to begin the certification process</p>
-      
+
       <!-- Loading State for definitions -->
       @if (loading()) {
         <div class="loading-spinner">
@@ -32,9 +32,9 @@
                 <h2>{{ workflow.name }}</h2>
                 <span class="version-badge">v{{ workflow.version }}</span>
               </div>
-              
+
               <p class="description">{{ workflow.description }}</p>
-              
+
               @if (workflow.metadata) {
                 <div class="metadata">
                   @if (workflow.metadata.estimatedTotalDurationDays) {
@@ -53,7 +53,7 @@
                   }
                   <div class="meta-item">
                     <span class="label">Steps:</span>
-                    <span class="value">{{ workflow.steps?.length || 0 }}</span>
+                    <span class="value">{{ (workflow.steps && workflow.steps.length) || 0 }}</span>
                   </div>
                   @if (workflow.metadata.requiresFactoryVisit) {
                     <div class="meta-item">
@@ -62,7 +62,7 @@
                   }
                 </div>
               }
-              
+
               <button class="btn btn-start">
                 Start Workflow
                 <span class="arrow">→</span>
@@ -89,7 +89,7 @@
       <div class="progress-bar">
         <div class="progress-track">
           @for (step of selectedWorkflow()?.steps; track $index; let i = $index) {
-            <div class="progress-step" 
+            <div class="progress-step"
                  [class.active]="i === currentStepIndex()"
                  [class.completed]="i < currentStepIndex()">
               <span class="step-number">{{ i + 1 }}</span>
@@ -97,7 +97,7 @@
           }
         </div>
         <p class="step-counter">
-          Step {{ currentStepIndex() + 1 }} of {{ selectedWorkflow()?.steps?.length }}
+          Step {{ currentStepIndex() + 1 }} of {{ (selectedWorkflow()?.steps && selectedWorkflow()!.steps.length) || 0 }}
         </p>
       </div>
 
@@ -134,23 +134,23 @@
 
               <!-- Navigation buttons -->
               <div class="step-navigation">
-                <button type="button" 
-                        class="btn btn-secondary" 
-                        (click)="loadPreviousStep()" 
+                <button type="button"
+                        class="btn btn-secondary"
+                        (click)="loadPreviousStep()"
                         [disabled]="isFirstStep()">
                   ← Previous Step
                 </button>
-                
+
                 @if (!isLastStep()) {
-                  <button type="button" 
-                          class="btn btn-primary" 
+                  <button type="button"
+                          class="btn btn-primary"
                           (click)="onSubmit()"
                           [disabled]="!isFormValid()">
                     Next Step →
                   </button>
                 } @else {
-                  <button type="button" 
-                          class="btn btn-success" 
+                  <button type="button"
+                          class="btn btn-success"
                           (click)="onSubmit()"
                           [disabled]="!isFormValid()">
                     Complete Workflow ✓
@@ -170,23 +170,23 @@
 
               <!-- Navigation buttons -->
               <div class="step-navigation">
-                <button type="button" 
-                        class="btn btn-secondary" 
-                        (click)="loadPreviousStep()" 
+                <button type="button"
+                        class="btn btn-secondary"
+                        (click)="loadPreviousStep()"
                         [disabled]="isFirstStep()">
                   ← Previous Step
                 </button>
-                
+
                 @if (!isLastStep()) {
-                  <button type="button" 
-                          class="btn btn-primary" 
+                  <button type="button"
+                          class="btn btn-primary"
                           (click)="onSubmit()"
                           [disabled]="!isFormValid()">
                     Next Step →
                   </button>
                 } @else {
-                  <button type="button" 
-                          class="btn btn-success" 
+                  <button type="button"
+                          class="btn btn-success"
                           (click)="onSubmit()"
                           [disabled]="!isFormValid()">
                     Complete Workflow ✓

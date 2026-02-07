@@ -28,81 +28,74 @@ export interface BrandTableRow {
 
 /**
  * Load brands from API and populate the selectedBrand dropdown
- * 
+ *
  * This hook is called when the step loads (onInit)
  * It fetches brands from the /api/Brands endpoint and populates the dropdown
  */
 export async function loadBrands(field: any, model: any, formState: any, http: HttpClient): Promise<void> {
   try {
     console.log('loadBrands: Starting to fetch brands from API...');
-    
-    // Set loading state on props (ngx-formly uses props, not templateOptions)
-    if (field.props) {
-      field.props.loading = true;
-    }
-    
+    console.log('loadBrands: field object:', field);
+
     // Call the backend API
     const apiUrl = '/api/Brands';
     const brands = await http.get<Brand[]>(apiUrl).toPromise();
-    
+
     console.log('loadBrands: Received brands from API:', brands);
-    
+
     if (brands && Array.isArray(brands)) {
-      // Map API response to dropdown options format
-      const options = brands.map(brand => ({
-        value: brand.value,
-        label: brand.label,
-        labelAr: brand.labelAr
-      }));
+      // For JSON Forms, we need to update the schema's enum property
+      // Extract just the values for the enum
+      const enumValues = brands.map(brand => brand.value);
 
-      console.log('loadBrands: Mapped options:', options);
+      // Store the brand data in the model for later use (for onChange hook)
+      model._brandsData = brands;
 
-      // Set options on props (ngx-formly uses props, not templateOptions)
-      if (field.props) {
-        field.props.options = options;
-        field.props.loading = false;
+      // If field has schema access, update it
+      if (field.schema && field.schema.properties && field.schema.properties.selectedBrand) {
+        field.schema.properties.selectedBrand.enum = enumValues;
+        console.log('loadBrands: Updated schema.properties.selectedBrand.enum:', field.schema.properties.selectedBrand.enum);
+        console.log('loadBrands: Full schema:', JSON.stringify(field.schema, null, 2));
       }
-      
-      console.log(`loadBrands: Successfully loaded ${options.length} brands`);
-      console.log('loadBrands: field.props.options is now:', field.props?.options);
+
+      console.log(`loadBrands: Successfully loaded ${brands.length} brands`);
+      console.log('loadBrands: Enum values:', enumValues);
     } else {
       console.warn('loadBrands: API returned invalid data (not an array)');
-      if (field.props) {
-        field.props.loading = false;
-        field.props.options = [];
+      if (field.schema && field.schema.properties && field.schema.properties.selectedBrand) {
+        field.schema.properties.selectedBrand.enum = [];
       }
     }
   } catch (error) {
     console.error('loadBrands: Error fetching brands from API', error);
-    
-    if (field.props) {
-      field.props.loading = false;
-      field.props.options = [];
+
+    if (field.schema && field.schema.properties && field.schema.properties.selectedBrand) {
+      field.schema.properties.selectedBrand.enum = [];
     }
   }
 }
 
 /**
  * Handle brand selection change - add existing brand to table
- * 
+ *
  * This hook is called when the user selects a brand from the dropdown (onChange)
  * It automatically adds the selected brand to the brandTable
  */
 export function onBrandSelected(field: any, model: any): void {
   console.log('onBrandSelected: Brand selected:', model.selectedBrand);
-  
+
   const selectedBrand = model.selectedBrand;
   if (!selectedBrand) {
     console.log('onBrandSelected: No brand selected, skipping');
     return;
   }
 
-  // Get options from props (ngx-formly uses props)
-  const options = field.props?.options || [];
-  const brandOption = options.find((opt: any) => opt.value === selectedBrand);
-  
+  // Get brand data from model (stored during loadBrands)
+  const brandsData = model._brandsData || [];
+  const brandOption = brandsData.find((brand: Brand) => brand.value === selectedBrand);
+
   console.log('onBrandSelected: Found brand option:', brandOption);
-  
+
   if (brandOption) {
     // Initialize brandTable if it doesn't exist
     if (!model.brandTable) {
@@ -127,7 +120,7 @@ export function onBrandSelected(field: any, model: any): void {
       model.brandTable = [...model.brandTable, row];
       console.log('onBrandSelected: Added brand to table:', row);
       console.log('onBrandSelected: brandTable now has', model.brandTable.length, 'entries');
-      
+
       // Clear the selection after adding (allows adding the same brand again if removed)
       model.selectedBrand = '';
       console.log('onBrandSelected: Cleared selection');
@@ -135,7 +128,7 @@ export function onBrandSelected(field: any, model: any): void {
       console.warn('onBrandSelected: Brand already exists in table, skipping');
     }
   } else {
-    console.error('onBrandSelected: Brand option not found in dropdown options');
+    console.error('onBrandSelected: Brand option not found in stored brand data');
   }
 }
 
@@ -162,12 +155,72 @@ export function validateBrands(model: any): { isValid: boolean; message: string 
   };
 }
 
+/**
+ * Save new brand to the brandTable
+ *
+ * This is a custom action hook that gets called when the user clicks "Save New Brand" button
+ */
+export function saveNewBrand(field: any, model: any): boolean {
+  const nameEn = model['newBrandNameEn'];
+  const nameAr = model['newBrandNameAr'];
+
+  if (!nameEn || !nameAr) {
+    console.warn('Both English and Arabic brand names are required');
+    return false;
+  }
+
+  // Initialize brandTable if it doesn't exist
+  if (!model['brandTable']) {
+    model['brandTable'] = [];
+  }
+
+  // Check for duplicates
+  const exists = model['brandTable'].some(
+    (brand: BrandTableRow) => brand.nameEn === nameEn && brand.nameAr === nameAr
+  );
+
+  if (exists) {
+    console.warn('Brand already exists in table');
+    alert('This brand already exists in the table!');
+    return false;
+  }
+
+  // Add new brand to table
+  const newBrand: BrandTableRow = {
+    nameEn: nameEn,
+    nameAr: nameAr,
+    source: 'New'
+  };
+
+  model['brandTable'] = [...model['brandTable'], newBrand];
+
+  // Clear the input fields
+  model['newBrandNameEn'] = '';
+  model['newBrandNameAr'] = '';
+
+  console.log('New brand added to table:', newBrand);
+  return true;
+}
+
+/**
+ * Check if new brand can be saved
+ *
+ * This is a validation hook for the "Save New Brand" button
+ */
+export function canSaveNewBrand(field: any, model: any): boolean {
+  const nameEn = model['newBrandNameEn'];
+  const nameAr = model['newBrandNameAr'];
+  return !!(nameEn && nameAr && nameEn.trim() && nameAr.trim());
+}
+
 export const STEP_ID = 'saso_test_step2_brands';
 
 export const hooks = {
   loadBrands,
   onBrandSelected,
-  validateBrands
+  validateBrands,
+  saveNewBrand,
+  canSaveNewBrand
 };
 
 export default {

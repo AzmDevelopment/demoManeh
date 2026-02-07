@@ -533,8 +533,25 @@
     flex-direction: column;
     gap: 12px;
   }
-  
+
   .step-navigation .btn {
     width: 100%;
   }
+}
+
+/* Custom step actions (for step-specific buttons) */
+.custom-step-actions {
+  margin: 20px 0;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+}
+
+.custom-step-actions .btn {
+  margin-right: 10px;
+}
+
+.custom-step-actions .btn:last-child {
+  margin-right: 0;
 }

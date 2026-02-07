@@ -29,6 +29,13 @@ export interface WorkflowStep {
   };
 }
 
+export interface CustomAction {
+  label: string;
+  hookName: string;
+  buttonClass?: string;
+  validateHook?: string;
+}
+
 export interface StepDefinition {
   stepId: string;
   name: string;
@@ -43,6 +50,7 @@ export interface StepDefinition {
     onInit?: string[];
     onChange?: Record<string, string>;
   };
+  customActions?: CustomAction[];
   stepConfig: {
     canSendBack: boolean;
     estimatedDurationHours: number;
@@ -152,29 +160,47 @@ export class WorkflowSelectorComponent implements OnInit {
   private async setCurrentStep(stepDef: StepDefinition): Promise<void> {
     console.log('=== SET CURRENT STEP ===');
     console.log('Step definition received from API:', JSON.stringify(stepDef, null, 2));
-    
+
     this.currentStep.set(stepDef);
-    
+
     // Load saved data for this step if exists, otherwise empty model
     this.model = this.stepFormData[stepDef.stepId] || {};
-    
+
     // Check if step uses JSON Forms format (schema/uischema) or legacy format (fields)
     if (stepDef.schema) {
       console.log('Using JSON Forms schema/uischema format');
-      this.schema.set(stepDef.schema);
-      this.uischema.set(stepDef.uischema || null);
-      this.fields.set([]);
+
+      // Don't set schema yet if there are onInit hooks - let them run first
+      if (stepDef.hooks?.onInit && stepDef.hooks.onInit.length > 0) {
+        console.log('Delaying schema initialization until after onInit hooks execute');
+        this.schema.set(null);
+        this.uischema.set(null);
+        this.fields.set([]);
+
+        // Execute hooks first
+        await this.loadAndExecuteHooks(stepDef);
+
+        // Now set the schema after hooks have modified it
+        console.log('Setting schema after hooks execution');
+        this.schema.set(stepDef.schema);
+        this.uischema.set(stepDef.uischema || null);
+      } else {
+        // No hooks, set schema immediately
+        this.schema.set(stepDef.schema);
+        this.uischema.set(stepDef.uischema || null);
+        this.fields.set([]);
+      }
     } else if (stepDef.fields) {
       console.log('Using legacy fields format');
       this.schema.set(null);
       this.uischema.set(null);
       const convertedFields = this.convertFields(stepDef.fields);
       this.fields.set([...convertedFields]);
+
+      // Execute hooks after fields are set
+      await this.loadAndExecuteHooks(stepDef);
     }
-    
-    // Load and execute hooks
-    await this.loadAndExecuteHooks(stepDef);
-    
+
     // Force change detection
     this.cdr.detectChanges();
   }
@@ -230,16 +256,28 @@ export class WorkflowSelectorComponent implements OnInit {
 
     this.stepHooks = this.workflowHooksService.getHooksForStep(workflowId, stepId);
 
+    // Expose hooks globally for custom button renderer
+    (window as any).__currentStepHooks = this.stepHooks;
+    (window as any).__httpClient = this.http;
+
     if (this.stepHooks) {
       console.log('✅ Hooks loaded:', Object.keys(this.stepHooks));
-      
+
       // Execute onInit hooks
       if (stepDef.hooks?.onInit) {
         for (const hookName of stepDef.hooks.onInit) {
           if (this.stepHooks[hookName]) {
             console.log(`Executing onInit hook: ${hookName}`);
             try {
-              await this.stepHooks[hookName]({}, this.model, {}, this.http);
+              // Pass the schema to the hook so it can modify it
+              const fieldProxy = {
+                schema: stepDef.schema,
+                uischema: stepDef.uischema
+              };
+              await this.stepHooks[hookName](fieldProxy, this.model, {}, this.http);
+
+              // Schema is modified by reference, no need to update here
+              // The schema will be set after all hooks complete
             } catch (error) {
               console.error(`Error executing hook ${hookName}:`, error);
             }
@@ -325,7 +363,36 @@ export class WorkflowSelectorComponent implements OnInit {
    * Handle model updates from the form component
    */
   onModelChange(newModel: Record<string, any>): void {
+    // Detect which field changed by comparing old and new model
+    const changedFields = Object.keys(newModel).filter(key => {
+      return this.model[key] !== newModel[key];
+    });
+
     this.model = newModel;
+
+    // Execute onChange hooks for changed fields (JSON Forms)
+    const step = this.currentStep();
+    if (step?.hooks?.onChange && this.stepHooks && changedFields.length > 0) {
+      for (const fieldKey of changedFields) {
+        const hookName = step.hooks.onChange[fieldKey];
+        if (hookName && this.stepHooks[hookName]) {
+          console.log(`Executing onChange hook '${hookName}' for field '${fieldKey}'`);
+
+          const fieldProxy = {
+            schema: step.schema,
+            uischema: step.uischema
+          };
+
+          // Execute the hook
+          this.stepHooks[hookName](fieldProxy, this.model, {}, this.http);
+
+          console.log('Model after onChange hook:', JSON.stringify(this.model));
+
+          // Trigger change detection
+          this.cdr.detectChanges();
+        }
+      }
+    }
   }
 
   private saveCurrentStepData(): void {
@@ -468,6 +535,64 @@ export class WorkflowSelectorComponent implements OnInit {
       this.saveCurrentStepData();
       console.log('Step submitted:', this.model);
       this.loadNextStep();
+    }
+  }
+
+  /**
+   * Execute a custom action (button click)
+   */
+  executeCustomAction(action: CustomAction): void {
+    console.log(`Executing custom action: ${action.hookName}`);
+
+    if (!this.stepHooks || !this.stepHooks[action.hookName]) {
+      console.error(`Hook '${action.hookName}' not found`);
+      return;
+    }
+
+    const step = this.currentStep();
+    const fieldProxy = {
+      schema: step?.schema,
+      uischema: step?.uischema
+    };
+
+    // Execute the hook
+    const result = this.stepHooks[action.hookName](fieldProxy, this.model, {}, this.http);
+
+    // If hook returns true or is successful, trigger change detection
+    if (result !== false) {
+      console.log('Custom action executed successfully');
+      // Force change detection to update the UI
+      this.cdr.detectChanges();
+    }
+  }
+
+  /**
+   * Check if a custom action is enabled
+   */
+  isCustomActionEnabled(action: CustomAction): boolean {
+    // If no validate hook, button is always enabled
+    if (!action.validateHook) {
+      return true;
+    }
+
+    // Check if validate hook exists
+    if (!this.stepHooks || !this.stepHooks[action.validateHook]) {
+      console.warn(`Validate hook '${action.validateHook}' not found`);
+      return true;
+    }
+
+    const step = this.currentStep();
+    const fieldProxy = {
+      schema: step?.schema,
+      uischema: step?.uischema
+    };
+
+    // Execute validate hook
+    try {
+      return this.stepHooks[action.validateHook](fieldProxy, this.model, {}, this.http);
+    } catch (error) {
+      console.error(`Error executing validate hook '${action.validateHook}':`, error);
+      return false;
     }
   }
 }

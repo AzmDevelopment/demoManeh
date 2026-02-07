@@ -17,7 +17,7 @@ export interface CertificationType {
 
 /**
  * Load certification types from API and populate the selectedType dropdown
- * 
+ *
  * Hook: onInit
  * Called when the step loads
  */
@@ -29,48 +29,44 @@ export async function loadTypes(
 ): Promise<void> {
   try {
     console.log('loadTypes: Starting to fetch types from API...');
-    
-    // Set loading state on props (ngx-formly uses props, not templateOptions)
-    if (field.props) {
-      field.props.loading = true;
-    }
-    
+    console.log('loadTypes: field object:', field);
+
     // Call the backend API
     const apiUrl = '/api/Types';
     const types = await http.get<CertificationType[]>(apiUrl).toPromise();
-    
+
     console.log('loadTypes: Received types from API:', types);
-    
+
     if (types && Array.isArray(types)) {
-      // Map API response to dropdown options format
-      const options = types.map(type => ({
-        value: type.value,
-        label: type.label
-      }));
+      // For JSON Forms, we need to update the schema's enum property
+      // The field parameter should have access to the schema
 
-      console.log('loadTypes: Mapped options:', options);
+      // Extract just the values for the enum
+      const enumValues = types.map(type => type.value);
 
-      // Set options on props (ngx-formly uses props, not templateOptions)
-      if (field.props) {
-        field.props.options = options;
-        field.props.loading = false;
+      // If field has schema access, update it
+      if (field.schema && field.schema.properties && field.schema.properties.selectedType) {
+        field.schema.properties.selectedType.enum = enumValues;
+        console.log('loadTypes: Updated schema.properties.selectedType.enum:', field.schema.properties.selectedType.enum);
+        console.log('loadTypes: Full schema:', JSON.stringify(field.schema, null, 2));
       }
-      
-      console.log(`loadTypes: Successfully loaded ${options.length} types`);
-      console.log('loadTypes: field.props.options is now:', field.props?.options);
+
+      // Also store the full type objects in the model for reference (optional)
+      model._typesData = types;
+
+      console.log(`loadTypes: Successfully loaded ${types.length} types`);
+      console.log('loadTypes: Enum values:', enumValues);
     } else {
       console.warn('loadTypes: API returned invalid data');
-      if (field.props) {
-        field.props.loading = false;
-        field.props.options = [];
+      if (field.schema && field.schema.properties && field.schema.properties.selectedType) {
+        field.schema.properties.selectedType.enum = [];
       }
     }
   } catch (error) {
     console.error('loadTypes: Error fetching types from API', error);
-    
-    if (field.props) {
-      field.props.loading = false;
-      field.props.options = [];
+
+    if (field.schema && field.schema.properties && field.schema.properties.selectedType) {
+      field.schema.properties.selectedType.enum = [];
     }
   }
 }

@@ -1,3 +1,6 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 namespace backend.Models;
 
 public class WorkflowStep
@@ -6,8 +9,23 @@ public class WorkflowStep
     public string Name { get; set; } = string.Empty;
     public string Actor { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
-    
-    public List<FormField> Fields { get; set; } = new();
+
+    // Legacy fields format (for backward compatibility)
+    public List<FormField>? Fields { get; set; }
+
+    // JSON Forms format (new)
+    [JsonPropertyName("schema")]
+    public JsonElement? Schema { get; set; }
+
+    [JsonPropertyName("uischema")]
+    public JsonElement? Uischema { get; set; }
+
+    // Hooks configuration
+    public StepHooks? Hooks { get; set; }
+
+    // Custom actions (buttons) configuration
+    public List<CustomAction>? CustomActions { get; set; }
+
     public StepConfiguration StepConfig { get; set; } = new();
     public List<string> Validations { get; set; } = new();
     public List<ValidationMessage>? ValidationMessages { get; set; }
@@ -50,6 +68,20 @@ public class FieldHooks
 {
     public string? OnInit { get; set; }
     public string? OnChange { get; set; }
+}
+
+public class StepHooks
+{
+    public List<string>? OnInit { get; set; }
+    public Dictionary<string, string>? OnChange { get; set; }
+}
+
+public class CustomAction
+{
+    public string Label { get; set; } = string.Empty;
+    public string HookName { get; set; } = string.Empty;
+    public string? ButtonClass { get; set; }
+    public string? ValidateHook { get; set; }
 }
 
 public class FieldValidation

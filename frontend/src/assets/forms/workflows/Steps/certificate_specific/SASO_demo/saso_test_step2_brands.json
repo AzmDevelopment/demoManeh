@@ -19,11 +19,11 @@
           "properties": {
             "nameEn": {
               "type": "string",
-              "title": "Brand (English)"
+              "title": "Brand Name (English)"
             },
             "nameAr": {
               "type": "string",
-              "title": "Brand (Arabic)"
+              "title": "Brand Name (Arabic)"
             },
             "source": {
               "type": "string",
@@ -32,6 +32,11 @@
           },
           "required": ["nameEn", "nameAr"]
         }
+      },
+      "showNewBrandForm": {
+        "type": "boolean",
+        "title": "Show New Brand Form",
+        "default": false
       },
       "newBrandNameEn": {
         "type": "string",
@@ -54,8 +59,7 @@
         "scope": "#/properties/selectedBrand",
         "label": "Select Existing Brand",
         "options": {
-          "placeholder": "Choose a brand to add...",
-          "autocomplete": false
+          "placeholder": "Choose a brand to add..."
         }
       },
       {
@@ -64,23 +68,7 @@
         "label": "Selected Brands",
         "options": {
           "showSortButtons": false,
-          "detail": {
-            "type": "HorizontalLayout",
-            "elements": [
-              {
-                "type": "Control",
-                "scope": "#/properties/nameEn"
-              },
-              {
-                "type": "Control",
-                "scope": "#/properties/nameAr"
-              },
-              {
-                "type": "Control",
-                "scope": "#/properties/source"
-              }
-            ]
-          }
+          "detail": "DEFAULT"
         }
       },
       {
@@ -107,6 +95,13 @@
                 }
               }
             ]
+          },
+          {
+            "type": "CustomButton",
+            "label": "💾 Save Brand",
+            "hookName": "saveNewBrand",
+            "buttonClass": "btn-primary",
+            "validateHook": "canSaveNewBrand"
           }
         ]
       }
