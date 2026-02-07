@@ -145,10 +145,15 @@ export class WorkflowSelectorComponent implements OnInit {
     
     // Convert fields from JSON to formly format (with hooks stored)
     const convertedFields = this.convertFieldsToFormly(stepDef.fields);
-    this.fields.set(convertedFields);
-
-    // Load and execute hooks for this step
+    
+    // Load and execute hooks BEFORE setting fields signal
+    // This ensures options are populated before the form renders
     await this.loadAndExecuteHooks(stepDef, convertedFields);
+    
+    // Now set the fields signal with the modified fields
+    this.fields.set(convertedFields);
+    
+    console.log('Fields set after hooks. First field options:', convertedFields[0]?.props?.options);
   }
 
   /**
@@ -190,10 +195,7 @@ export class WorkflowSelectorComponent implements OnInit {
           console.log(`✅ Executing onInit hook '${hookName}' for field '${field.key}'`);
           try {
             await this.stepHooks[hookName](field, this.model, {}, this.http);
-            console.log(`Hook '${hookName}' executed. Options:`, field.props?.options);
-            
-            // Update the fields signal to trigger re-render
-            this.fields.set([...this.fields()]);
+            console.log(`Hook '${hookName}' executed. field.props.options:`, field.props?.options);
           } catch (error) {
             console.error(`❌ Error executing hook '${hookName}':`, error);
           }

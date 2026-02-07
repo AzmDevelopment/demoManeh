@@ -30,6 +30,7 @@ export async function loadTypes(
   try {
     console.log('loadTypes: Starting to fetch types from API...');
     
+    // Set loading state on props (ngx-formly uses props, not templateOptions)
     if (field.props) {
       field.props.loading = true;
     }
@@ -49,12 +50,14 @@ export async function loadTypes(
 
       console.log('loadTypes: Mapped options:', options);
 
+      // Set options on props (ngx-formly uses props, not templateOptions)
       if (field.props) {
         field.props.options = options;
         field.props.loading = false;
       }
       
       console.log(`loadTypes: Successfully loaded ${options.length} types`);
+      console.log('loadTypes: field.props.options is now:', field.props?.options);
     } else {
       console.warn('loadTypes: API returned invalid data');
       if (field.props) {

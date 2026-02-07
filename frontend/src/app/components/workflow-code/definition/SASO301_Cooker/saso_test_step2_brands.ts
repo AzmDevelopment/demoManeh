@@ -36,12 +36,13 @@ export async function loadBrands(field: any, model: any, formState: any, http: H
   try {
     console.log('loadBrands: Starting to fetch brands from API...');
     
-    if (field.templateOptions) {
-      field.templateOptions.loading = true;
+    // Set loading state on props (ngx-formly uses props, not templateOptions)
+    if (field.props) {
+      field.props.loading = true;
     }
     
     // Call the backend API
-    const apiUrl = 'https://localhost:7047/api/Brands';
+    const apiUrl = '/api/Brands';
     const brands = await http.get<Brand[]>(apiUrl).toPromise();
     
     console.log('loadBrands: Received brands from API:', brands);
@@ -56,29 +57,28 @@ export async function loadBrands(field: any, model: any, formState: any, http: H
 
       console.log('loadBrands: Mapped options:', options);
 
-      if (field.templateOptions) {
-        field.templateOptions.options = options;
-        field.templateOptions.loading = false;
+      // Set options on props (ngx-formly uses props, not templateOptions)
+      if (field.props) {
+        field.props.options = options;
+        field.props.loading = false;
       }
       
       console.log(`loadBrands: Successfully loaded ${options.length} brands`);
+      console.log('loadBrands: field.props.options is now:', field.props?.options);
     } else {
       console.warn('loadBrands: API returned invalid data (not an array)');
-      if (field.templateOptions) {
-        field.templateOptions.loading = false;
-        field.templateOptions.options = [];
+      if (field.props) {
+        field.props.loading = false;
+        field.props.options = [];
       }
     }
   } catch (error) {
     console.error('loadBrands: Error fetching brands from API', error);
     
-    if (field.templateOptions) {
-      field.templateOptions.loading = false;
-      field.templateOptions.options = [];
+    if (field.props) {
+      field.props.loading = false;
+      field.props.options = [];
     }
-    
-    // Optionally show a user-friendly error message
-    // You could emit an event or set an error state here
   }
 }
 
@@ -97,7 +97,8 @@ export function onBrandSelected(field: any, model: any): void {
     return;
   }
 
-  const options = field.templateOptions?.options || [];
+  // Get options from props (ngx-formly uses props)
+  const options = field.props?.options || [];
   const brandOption = options.find((opt: any) => opt.value === selectedBrand);
   
   console.log('onBrandSelected: Found brand option:', brandOption);
@@ -132,8 +133,6 @@ export function onBrandSelected(field: any, model: any): void {
       console.log('onBrandSelected: Cleared selection');
     } else {
       console.warn('onBrandSelected: Brand already exists in table, skipping');
-      // Optionally show a message to the user
-      // alert('This brand has already been added to the table');
     }
   } else {
     console.error('onBrandSelected: Brand option not found in dropdown options');

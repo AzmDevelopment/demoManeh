@@ -106,10 +106,16 @@ export class WorkflowStepComponent implements OnInit {
       this.model = { ...this.currentData };
 
       // Build formly fields from step definition
-      this.fields = this.buildFormlyFields(this.stepDefinition.fields || []);
+      const convertedFields = this.buildFormlyFields(this.stepDefinition.fields || []);
 
-      // Load and execute hooks
-      await this.loadAndExecuteHooks();
+      // Load and execute hooks BEFORE setting fields
+      // This ensures options are populated before the form renders
+      await this.loadAndExecuteHooks(convertedFields);
+
+      // Now set the fields with populated options
+      this.fields = convertedFields;
+      
+      console.log('Fields set after hooks. First field options:', this.fields[0]?.props?.options);
 
       this.loading = false;
       this.cdr.detectChanges();
@@ -168,15 +174,13 @@ export class WorkflowStepComponent implements OnInit {
   /**
    * Load hooks and execute onInit hooks for fields
    */
-  private async loadAndExecuteHooks(): Promise<void> {
+  private async loadAndExecuteHooks(fields?: FormlyFieldConfig[]): Promise<void> {
     const workflowId = this.instance?.definitionId;
     const stepId = this.stepDefinition?.stepId;
 
     console.log('=== LOAD AND EXECUTE HOOKS ===');
     console.log('  workflowId:', workflowId);
     console.log('  stepId:', stepId);
-    console.log('  fields count:', this.fields?.length);
-    console.log('  stepDefinition.fields:', this.stepDefinition?.fields);
 
     if (!workflowId || !stepId) {
       console.log('❌ Cannot load hooks: missing workflowId or stepId');
@@ -190,13 +194,8 @@ export class WorkflowStepComponent implements OnInit {
     if (this.stepHooks) {
       console.log('✅ Hooks loaded:', Object.keys(this.stepHooks));
       
-      // Debug: Log all fields and their _hooks
-      this.fields.forEach(f => {
-        console.log(`  Field '${f.key}' _hooks:`, (f as any)._hooks);
-      });
-      
-      await this.processFieldHooks(this.fields);
-      this.cdr.detectChanges();
+      const fieldsToProcess = fields || this.fields;
+      await this.processFieldHooks(fieldsToProcess);
     } else {
       console.log('❌ No hooks found for this step');
     }
@@ -214,26 +213,20 @@ export class WorkflowStepComponent implements OnInit {
     for (const field of fields) {
       const fieldHooks = (field as any)._hooks;
       
-      console.log(`Processing field '${field.key}':`, {
-        hasHooks: !!fieldHooks,
-        hooks: fieldHooks,
-        availableStepHooks: Object.keys(this.stepHooks)
-      });
-      
       if (fieldHooks?.onInit) {
         const hookName = fieldHooks.onInit;
-        console.log(`  Looking for hook function '${hookName}'`);
+        console.log(`Looking for hook function '${hookName}'`);
         
         if (this.stepHooks[hookName]) {
-          console.log(`  ✅ Executing onInit hook '${hookName}' for field '${field.key}'`);
+          console.log(`✅ Executing onInit hook '${hookName}' for field '${field.key}'`);
           try {
             await this.stepHooks[hookName](field, this.model, {}, this.http);
-            console.log(`  Hook '${hookName}' executed. Options now:`, field.props?.options);
+            console.log(`Hook '${hookName}' executed. field.props.options:`, field.props?.options);
           } catch (error) {
-            console.error(`  ❌ Error executing hook '${hookName}':`, error);
+            console.error(`❌ Error executing hook '${hookName}':`, error);
           }
         } else {
-          console.log(`  ❌ Hook function '${hookName}' not found in stepHooks`);
+          console.log(`❌ Hook function '${hookName}' not found in stepHooks`);
         }
       }
 
