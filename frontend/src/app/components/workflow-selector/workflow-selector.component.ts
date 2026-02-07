@@ -34,7 +34,15 @@ export interface StepDefinition {
   name: string;
   actor: string;
   description: string;
-  fields: any[];
+  // Legacy fields format
+  fields?: any[];
+  // JSON Forms format
+  schema?: any;
+  uischema?: any;
+  hooks?: {
+    onInit?: string[];
+    onChange?: Record<string, string>;
+  };
   stepConfig: {
     canSendBack: boolean;
     estimatedDurationHours: number;
@@ -74,7 +82,11 @@ export class WorkflowSelectorComponent implements OnInit {
 
   // Form state
   model: Record<string, any> = {};
-  fields = signal<FormFieldDefinition[]>([]);
+  fields = signal<any[]>([]);
+  
+  // JSON Forms state
+  schema = signal<any>(null);
+  uischema = signal<any>(null);
 
   // Store form data for each step
   stepFormData: Record<string, any> = {};
@@ -138,27 +150,30 @@ export class WorkflowSelectorComponent implements OnInit {
   }
 
   private async setCurrentStep(stepDef: StepDefinition): Promise<void> {
+    console.log('=== SET CURRENT STEP ===');
+    console.log('Step definition received from API:', JSON.stringify(stepDef, null, 2));
+    
     this.currentStep.set(stepDef);
     
     // Load saved data for this step if exists, otherwise empty model
     this.model = this.stepFormData[stepDef.stepId] || {};
     
-    // Convert fields from JSON format
-    const convertedFields = this.convertFields(stepDef.fields);
+    // Check if step uses JSON Forms format (schema/uischema) or legacy format (fields)
+    if (stepDef.schema) {
+      console.log('Using JSON Forms schema/uischema format');
+      this.schema.set(stepDef.schema);
+      this.uischema.set(stepDef.uischema || null);
+      this.fields.set([]);
+    } else if (stepDef.fields) {
+      console.log('Using legacy fields format');
+      this.schema.set(null);
+      this.uischema.set(null);
+      const convertedFields = this.convertFields(stepDef.fields);
+      this.fields.set([...convertedFields]);
+    }
     
-    console.log('=== CONVERTED FIELDS ===');
-    convertedFields.forEach(f => {
-      console.log(`Field: ${f.key}, Type: ${f.type}`);
-      console.log(`  templateOptions:`, f.templateOptions);
-    });
-    
-    // Load and execute hooks BEFORE setting fields
-    await this.loadAndExecuteHooks(stepDef, convertedFields);
-    
-    // Set the fields - create new array to ensure signal triggers update
-    this.fields.set([...convertedFields]);
-    
-    console.log('Fields signal updated with', convertedFields.length, 'fields');
+    // Load and execute hooks
+    await this.loadAndExecuteHooks(stepDef);
     
     // Force change detection
     this.cdr.detectChanges();
@@ -172,10 +187,15 @@ export class WorkflowSelectorComponent implements OnInit {
       // Deep copy templateOptions to ensure all nested properties are preserved
       const templateOptions = field.templateOptions ? JSON.parse(JSON.stringify(field.templateOptions)) : {};
       
-      console.log(`Converting field '${field.key}' of type '${field.type}'`);
-      console.log(`  templateOptions:`, templateOptions);
-      if (templateOptions.columns) {
-        console.log(`  columns:`, templateOptions.columns);
+      console.log(`=== Converting field '${field.key}' ===`);
+      console.log(`  Type: ${field.type}`);
+      console.log(`  Raw templateOptions from API:`, field.templateOptions);
+      console.log(`  Deep copied templateOptions:`, templateOptions);
+      
+      if (field.type === 'table') {
+        console.log(`  TABLE FIELD DETECTED!`);
+        console.log(`  Raw columns:`, field.templateOptions?.columns);
+        console.log(`  Copied columns:`, templateOptions.columns);
       }
       
       const converted: FormFieldDefinition = {
@@ -189,6 +209,9 @@ export class WorkflowSelectorComponent implements OnInit {
         validation: field.validation,
         fieldGroup: field.fieldGroup ? this.convertFields(field.fieldGroup) : undefined
       };
+      
+      console.log(`  Final converted templateOptions:`, converted.templateOptions);
+      
       return converted;
     });
   }
@@ -196,7 +219,7 @@ export class WorkflowSelectorComponent implements OnInit {
   /**
    * Load and execute hooks for the current step
    */
-  private async loadAndExecuteHooks(stepDef: StepDefinition, fields: FormFieldDefinition[]): Promise<void> {
+  private async loadAndExecuteHooks(stepDef: StepDefinition): Promise<void> {
     const workflow = this.selectedWorkflow();
     if (!workflow) return;
 
@@ -209,7 +232,20 @@ export class WorkflowSelectorComponent implements OnInit {
 
     if (this.stepHooks) {
       console.log('✅ Hooks loaded:', Object.keys(this.stepHooks));
-      await this.processFieldHooks(fields);
+      
+      // Execute onInit hooks
+      if (stepDef.hooks?.onInit) {
+        for (const hookName of stepDef.hooks.onInit) {
+          if (this.stepHooks[hookName]) {
+            console.log(`Executing onInit hook: ${hookName}`);
+            try {
+              await this.stepHooks[hookName]({}, this.model, {}, this.http);
+            } catch (error) {
+              console.error(`Error executing hook ${hookName}:`, error);
+            }
+          }
+        }
+      }
     } else {
       console.log('❌ No hooks found for this step');
     }
@@ -375,6 +411,8 @@ export class WorkflowSelectorComponent implements OnInit {
     this.error.set(null);
     this.model = {};
     this.fields.set([]);
+    this.schema.set(null);
+    this.uischema.set(null);
     this.stepFormData = {};
     this.stepHooks = null;
   }

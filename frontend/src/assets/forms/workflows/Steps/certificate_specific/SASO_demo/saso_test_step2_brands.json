@@ -4,84 +4,121 @@
   "actor": "customer",
   "description": "Select existing brands or add new ones for your products",
 
-  "fields": [
-    {
-      "key": "selectedBrand",
-      "type": "select",
-      "templateOptions": {
-        "label": "Select Existing Brand",
-        "placeholder": "Choose a brand to add...",
-        "required": false,
-        "options": []
+  "schema": {
+    "type": "object",
+    "properties": {
+      "selectedBrand": {
+        "type": "string",
+        "title": "Select Existing Brand"
       },
-      "hooks": {
-        "onInit": "loadBrands",
-        "onChange": "onBrandSelected"
-      }
-    },
-
-    {
-      "key": "brandTable",
-      "type": "table",
-      "templateOptions": {
-        "label": "Selected Brands",
-        "columns": [ "nameEn", "nameAr", "source" ],
-        "columnHeaders": {
-          "nameEn": "Brand (English)",
-          "nameAr": "Brand (Arabic)",
-          "source": "Source"
-        },
-        "emptyMessage": "No brands added yet. Select an existing brand or add a new one below.",
-        "badgeColumns": {
-          "source": {
-            "Existing": "bg-info",
-            "New": "bg-success"
-          }
-        },
-        "allowDelete": true
-      }
-    },
-    
-    {
-      "key": "newBrand",
-      "type": "add-to-table",
-      "templateOptions": {
-        "addText": "➕ Add New Brand",
-        "saveText": "💾 Save Brand",
-        "cancelText": "✕ Cancel",
-        "targetTableKey": "brandTable",
-        "fieldMapping": {
-          "brandNameEn": "nameEn",
-          "brandNameAr": "nameAr"
-        },
-        "defaults": {
-          "source": "New"
+      "brandTable": {
+        "type": "array",
+        "title": "Selected Brands",
+        "items": {
+          "type": "object",
+          "properties": {
+            "nameEn": {
+              "type": "string",
+              "title": "Brand (English)"
+            },
+            "nameAr": {
+              "type": "string",
+              "title": "Brand (Arabic)"
+            },
+            "source": {
+              "type": "string",
+              "title": "Source"
+            }
+          },
+          "required": ["nameEn", "nameAr"]
         }
       },
-      "fieldGroup": [
-        {
-          "key": "brandNameEn",
-          "type": "input",
-          "templateOptions": {
-            "label": "Brand Name (English)",
-            "placeholder": "Enter brand name in English",
-            "required": true,
-            "maxLength": 100
-          }
-        },
-        {
-          "key": "brandNameAr",
-          "type": "input",
-          "templateOptions": {
-            "label": "Brand Name (Arabic)",
-            "placeholder": "أدخل اسم العلامة التجارية بالعربية",
-            "required": true,
-            "maxLength": 100
-          }
-        }
-      ]
+      "newBrandNameEn": {
+        "type": "string",
+        "title": "Brand Name (English)",
+        "maxLength": 100
+      },
+      "newBrandNameAr": {
+        "type": "string",
+        "title": "Brand Name (Arabic)",
+        "maxLength": 100
+      }
     }
-  ],
+  },
+
+  "uischema": {
+    "type": "VerticalLayout",
+    "elements": [
+      {
+        "type": "Control",
+        "scope": "#/properties/selectedBrand",
+        "label": "Select Existing Brand",
+        "options": {
+          "placeholder": "Choose a brand to add...",
+          "autocomplete": false
+        }
+      },
+      {
+        "type": "Control",
+        "scope": "#/properties/brandTable",
+        "label": "Selected Brands",
+        "options": {
+          "showSortButtons": false,
+          "detail": {
+            "type": "HorizontalLayout",
+            "elements": [
+              {
+                "type": "Control",
+                "scope": "#/properties/nameEn"
+              },
+              {
+                "type": "Control",
+                "scope": "#/properties/nameAr"
+              },
+              {
+                "type": "Control",
+                "scope": "#/properties/source"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "type": "Group",
+        "label": "Add New Brand",
+        "elements": [
+          {
+            "type": "HorizontalLayout",
+            "elements": [
+              {
+                "type": "Control",
+                "scope": "#/properties/newBrandNameEn",
+                "label": "Brand Name (English)",
+                "options": {
+                  "placeholder": "Enter brand name in English"
+                }
+              },
+              {
+                "type": "Control",
+                "scope": "#/properties/newBrandNameAr",
+                "label": "Brand Name (Arabic)",
+                "options": {
+                  "placeholder": "أدخل اسم العلامة التجارية بالعربية"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+
+  "hooks": {
+    "onInit": ["loadBrands"],
+    "onChange": {
+      "selectedBrand": "onBrandSelected"
+    }
+  },
 
   "stepConfig": {
     "canSendBack": true,

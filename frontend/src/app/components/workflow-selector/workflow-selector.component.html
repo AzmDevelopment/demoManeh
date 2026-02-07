@@ -122,7 +122,44 @@
           </div>
 
           <!-- JSON Form -->
-          @if (fields().length > 0) {
+          @if (schema()) {
+            <!-- JSON Forms format -->
+            <div class="json-form-container">
+              <app-json-form
+                [schema]="schema()"
+                [uischema]="uischema()"
+                [data]="model"
+                (dataChange)="onModelChange($event)">
+              </app-json-form>
+
+              <!-- Navigation buttons -->
+              <div class="step-navigation">
+                <button type="button" 
+                        class="btn btn-secondary" 
+                        (click)="loadPreviousStep()" 
+                        [disabled]="isFirstStep()">
+                  ← Previous Step
+                </button>
+                
+                @if (!isLastStep()) {
+                  <button type="button" 
+                          class="btn btn-primary" 
+                          (click)="onSubmit()"
+                          [disabled]="!isFormValid()">
+                    Next Step →
+                  </button>
+                } @else {
+                  <button type="button" 
+                          class="btn btn-success" 
+                          (click)="onSubmit()"
+                          [disabled]="!isFormValid()">
+                    Complete Workflow ✓
+                  </button>
+                }
+              </div>
+            </div>
+          } @else if (fields().length > 0) {
+            <!-- Legacy fields format -->
             <div class="json-form-container">
               <app-json-form
                 [fields]="fields()"

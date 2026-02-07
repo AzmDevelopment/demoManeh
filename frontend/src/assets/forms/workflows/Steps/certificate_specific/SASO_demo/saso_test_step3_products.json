@@ -3,206 +3,203 @@
   "name": "Product Management",
   "actor": "customer",
   "description": "Add products with brand, sector, classification, measurements, and models",
-  
-  "fields": [
-    {
-      "key": "existingProduct",
-      "type": "select",
-      "templateOptions": {
-        "label": "Select Existing Product",
-        "placeholder": "Choose a product to add...",
-        "required": false
+
+  "schema": {
+    "type": "object",
+    "properties": {
+      "existingProduct": {
+        "type": "string",
+        "title": "Select Existing Product"
       },
-      "hooks": {
-        "onInit": "loadProducts",
-        "onChange": "onProductSelected"
-      }
-    },
-    
-    {
-      "key": "productTable",
-      "type": "table",
-      "templateOptions": {
-        "label": "Added Products",
-        "columns": ["brandName", "sectorName", "classificationName", "modelName", "modelNumber", "source"],
-        "columnHeaders": {
-          "brandName": "Brand",
-          "sectorName": "Sector",
-          "classificationName": "Classification",
-          "modelName": "Model",
-          "modelNumber": "Model #",
-          "source": "Source"
-        },
-        "emptyMessage": "No products added yet. Select an existing product or add a new one below.",
-        "badgeColumns": {
-          "source": {
-            "Existing": "bg-info",
-            "New": "bg-success"
-          }
-        },
-        "allowDelete": true
-      }
-    },
-    
-    {
-      "key": "newProduct",
-      "type": "add-to-table",
-      "templateOptions": {
-        "addText": "➕ Add New Product",
-        "saveText": "💾 Save Product",
-        "cancelText": "✕ Cancel",
-        "targetTableKey": "productTable",
-        "fieldMapping": {
-          "productBrandId": "brandName",
-          "sectorId": "sectorName",
-          "classificationId": "classificationName",
-          "modelName": "modelName",
-          "modelNumber": "modelNumber"
-        },
-        "defaults": {
-          "source": "New"
+      "productTable": {
+        "type": "array",
+        "title": "Added Products",
+        "items": {
+          "type": "object",
+          "properties": {
+            "brandName": {
+              "type": "string",
+              "title": "Brand"
+            },
+            "sectorName": {
+              "type": "string",
+              "title": "Sector"
+            },
+            "classificationName": {
+              "type": "string",
+              "title": "Classification"
+            },
+            "modelName": {
+              "type": "string",
+              "title": "Model"
+            },
+            "modelNumber": {
+              "type": "string",
+              "title": "Model #"
+            },
+            "source": {
+              "type": "string",
+              "title": "Source"
+            }
+          },
+          "required": ["brandName", "modelName"]
         }
       },
-      "fieldGroup": [
-        {
-          "key": "productBrandId",
-          "type": "select",
-          "templateOptions": {
-            "label": "Brand",
-            "placeholder": "Choose brand...",
-            "required": true,
-            "options": []
-          }
-        },
-        {
-          "key": "sectorId",
-          "type": "select",
-          "templateOptions": {
-            "label": "Sector",
-            "placeholder": "Choose sector...",
-            "required": true,
-            "options": []
-          }
-        },
-        {
-          "key": "classificationId",
-          "type": "select",
-          "templateOptions": {
-            "label": "Classification",
-            "placeholder": "Choose classification...",
-            "required": true,
-            "options": []
-          }
-        },
-        {
-          "key": "modelName",
-          "type": "input",
-          "templateOptions": {
-            "label": "Model Name",
-            "placeholder": "Enter model name",
-            "required": true
-          }
-        },
-        {
-          "key": "modelNumber",
-          "type": "input",
-          "templateOptions": {
-            "label": "Model Number",
-            "placeholder": "Enter model number",
-            "required": true
-          }
-        },
-        {
-          "key": "barcode",
-          "type": "input",
-          "templateOptions": {
-            "label": "Barcode",
-            "placeholder": "Enter barcode (optional)",
-            "required": false
-          }
-        }
-      ]
-    },
-    
-    {
-      "key": "hasMeasurement",
-      "type": "radio",
-      "defaultValue": "no",
-      "templateOptions": {
-        "label": "Does this product have measurements?",
-        "required": false,
-        "options": [
-          { "value": "yes", "label": "Yes" },
-          { "value": "no", "label": "No" }
-        ]
-      }
-    },
-    
-    {
-      "key": "measurementTable",
-      "type": "table",
-      "showWhen": "hasMeasurementYes",
-      "templateOptions": {
-        "label": "Product Measurements",
-        "columns": ["name", "value", "unit"],
-        "columnHeaders": {
-          "name": "Measurement",
-          "value": "Value",
-          "unit": "Unit"
-        },
-        "emptyMessage": "No measurements added yet.",
-        "allowDelete": true
-      }
-    },
-    
-    {
-      "key": "addMeasurement",
-      "type": "add-to-table",
-      "showWhen": "hasMeasurementYes",
-      "templateOptions": {
-        "addText": "➕ Add Measurement",
-        "saveText": "💾 Save",
-        "cancelText": "✕ Cancel",
-        "targetTableKey": "measurementTable",
-        "fieldMapping": {
-          "measurementName": "name",
-          "measurementValue": "value",
-          "measurementUnit": "unit"
-        }
+      "newProductBrandId": {
+        "type": "string",
+        "title": "Brand"
       },
-      "fieldGroup": [
-        {
-          "key": "measurementName",
-          "type": "input",
-          "templateOptions": {
-            "label": "Measurement Name",
-            "placeholder": "e.g., Length, Width, Weight",
-            "required": true
-          }
-        },
-        {
-          "key": "measurementValue",
-          "type": "input",
-          "templateOptions": {
-            "label": "Value",
-            "placeholder": "Enter value",
-            "type": "number",
-            "required": true
-          }
-        },
-        {
-          "key": "measurementUnit",
-          "type": "input",
-          "templateOptions": {
-            "label": "Unit",
-            "placeholder": "e.g., mm, cm, kg",
-            "required": true
-          }
+      "newProductSectorId": {
+        "type": "string",
+        "title": "Sector"
+      },
+      "newProductClassificationId": {
+        "type": "string",
+        "title": "Classification"
+      },
+      "newProductModelName": {
+        "type": "string",
+        "title": "Model Name"
+      },
+      "newProductModelNumber": {
+        "type": "string",
+        "title": "Model Number"
+      },
+      "newProductBarcode": {
+        "type": "string",
+        "title": "Barcode"
+      },
+      "hasMeasurement": {
+        "type": "boolean",
+        "title": "Does this product have measurements?"
+      },
+      "measurementTable": {
+        "type": "array",
+        "title": "Product Measurements",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "title": "Measurement"
+            },
+            "value": {
+              "type": "number",
+              "title": "Value"
+            },
+            "unit": {
+              "type": "string",
+              "title": "Unit"
+            }
+          },
+          "required": ["name", "value", "unit"]
         }
-      ]
+      }
     }
-  ],
-  
+  },
+
+  "uischema": {
+    "type": "VerticalLayout",
+    "elements": [
+      {
+        "type": "Control",
+        "scope": "#/properties/existingProduct",
+        "label": "Select Existing Product",
+        "options": {
+          "placeholder": "Choose a product to add..."
+        }
+      },
+      {
+        "type": "Control",
+        "scope": "#/properties/productTable",
+        "label": "Added Products",
+        "options": {
+          "detail": {
+            "type": "HorizontalLayout",
+            "elements": [
+              { "type": "Control", "scope": "#/properties/brandName" },
+              { "type": "Control", "scope": "#/properties/sectorName" },
+              { "type": "Control", "scope": "#/properties/classificationName" },
+              { "type": "Control", "scope": "#/properties/modelName" },
+              { "type": "Control", "scope": "#/properties/modelNumber" },
+              { "type": "Control", "scope": "#/properties/source" }
+            ]
+          }
+        }
+      },
+      {
+        "type": "Group",
+        "label": "Add New Product",
+        "elements": [
+          {
+            "type": "HorizontalLayout",
+            "elements": [
+              {
+                "type": "Control",
+                "scope": "#/properties/newProductBrandId",
+                "options": { "placeholder": "Choose brand..." }
+              },
+              {
+                "type": "Control",
+                "scope": "#/properties/newProductSectorId",
+                "options": { "placeholder": "Choose sector..." }
+              },
+              {
+                "type": "Control",
+                "scope": "#/properties/newProductClassificationId",
+                "options": { "placeholder": "Choose classification..." }
+              }
+            ]
+          },
+          {
+            "type": "HorizontalLayout",
+            "elements": [
+              {
+                "type": "Control",
+                "scope": "#/properties/newProductModelName",
+                "options": { "placeholder": "Enter model name" }
+              },
+              {
+                "type": "Control",
+                "scope": "#/properties/newProductModelNumber",
+                "options": { "placeholder": "Enter model number" }
+              },
+              {
+                "type": "Control",
+                "scope": "#/properties/newProductBarcode",
+                "options": { "placeholder": "Enter barcode (optional)" }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "Control",
+        "scope": "#/properties/hasMeasurement",
+        "label": "Does this product have measurements?"
+      },
+      {
+        "type": "Control",
+        "scope": "#/properties/measurementTable",
+        "label": "Product Measurements",
+        "rule": {
+          "effect": "SHOW",
+          "condition": {
+            "scope": "#/properties/hasMeasurement",
+            "schema": { "const": true }
+          }
+        }
+      }
+    ]
+  },
+
+  "hooks": {
+    "onInit": ["loadProducts", "loadSelectedBrands", "loadSectors", "loadClassifications"],
+    "onChange": {
+      "existingProduct": "onProductSelected"
+    }
+  },
+
   "stepConfig": {
     "canSendBack": true,
     "nextStep": "completed",

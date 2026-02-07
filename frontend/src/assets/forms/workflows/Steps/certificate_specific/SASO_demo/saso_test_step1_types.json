@@ -4,81 +4,91 @@
   "actor": "customer",
   "description": "Select the certification type for your product",
 
-  "fields": [
-    {
-      "key": "selectedType",
-      "type": "select",
-      "templateOptions": {
-        "label": "Certification Type",
-        "placeholder": "Choose a certification type...",
-        "required": true,
-        "options": []
+  "schema": {
+    "type": "object",
+    "properties": {
+      "selectedType": {
+        "type": "string",
+        "title": "Certification Type"
       },
-      "hooks": {
-        "onInit": "loadTypes"
-      },
-      "validation": {
-        "messages": {
-          "required": "Please select a certification type to proceed"
-        }
-      }
-    },
-    
-    {
-      "key": "applicantName",
-      "type": "input",
-      "templateOptions": {
-        "label": "Applicant Name",
-        "placeholder": "Enter your company or organization name",
-        "required": true,
+      "applicantName": {
+        "type": "string",
+        "title": "Applicant Name",
         "maxLength": 200
       },
-      "validation": {
-        "messages": {
-          "required": "Applicant name is required"
-        }
-      }
-    },
-    
-    {
-      "key": "applicantEmail",
-      "type": "input",
-      "templateOptions": {
-        "label": "Email Address",
-        "placeholder": "Enter your email address",
-        "type": "email",
-        "required": true
+      "applicantEmail": {
+        "type": "string",
+        "title": "Email Address",
+        "format": "email"
       },
-      "validation": {
-        "messages": {
-          "required": "Email address is required"
+      "applicantPhone": {
+        "type": "string",
+        "title": "Phone Number"
+      },
+      "comments": {
+        "type": "string",
+        "title": "Additional Comments",
+        "maxLength": 1000
+      }
+    },
+    "required": ["selectedType", "applicantName", "applicantEmail"]
+  },
+
+  "uischema": {
+    "type": "VerticalLayout",
+    "elements": [
+      {
+        "type": "Control",
+        "scope": "#/properties/selectedType",
+        "label": "Certification Type",
+        "options": {
+          "placeholder": "Choose a certification type..."
+        }
+      },
+      {
+        "type": "Control",
+        "scope": "#/properties/applicantName",
+        "label": "Applicant Name",
+        "options": {
+          "placeholder": "Enter your company or organization name"
+        }
+      },
+      {
+        "type": "HorizontalLayout",
+        "elements": [
+          {
+            "type": "Control",
+            "scope": "#/properties/applicantEmail",
+            "label": "Email Address",
+            "options": {
+              "placeholder": "Enter your email address"
+            }
+          },
+          {
+            "type": "Control",
+            "scope": "#/properties/applicantPhone",
+            "label": "Phone Number",
+            "options": {
+              "placeholder": "Enter your phone number"
+            }
+          }
+        ]
+      },
+      {
+        "type": "Control",
+        "scope": "#/properties/comments",
+        "label": "Additional Comments",
+        "options": {
+          "multi": true,
+          "placeholder": "Enter any additional information or special requirements..."
         }
       }
-    },
-    
-    {
-      "key": "applicantPhone",
-      "type": "input",
-      "templateOptions": {
-        "label": "Phone Number",
-        "placeholder": "Enter your phone number",
-        "type": "tel",
-        "required": false
-      }
-    },
-    
-    {
-      "key": "comments",
-      "type": "textarea",
-      "templateOptions": {
-        "label": "Additional Comments",
-        "placeholder": "Enter any additional information or special requirements...",
-        "rows": 4,
-        "maxLength": 1000,
-        "required": false
-      }
-    }
-  ],
+    ]
+  },
+
+  "hooks": {
+    "onInit": ["loadTypes"]
+  },
 
   "stepConfig": {
     "canSendBack": false,
