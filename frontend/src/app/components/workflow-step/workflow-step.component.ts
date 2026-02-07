@@ -1,15 +1,23 @@
 import { Component, OnInit, ChangeDetectorRef, PLATFORM_ID, Inject } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { HttpClientModule, HttpClient } from '@angular/common/http';
-import { FormsModule, ReactiveFormsModule, FormGroup, FormBuilder } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
+import { ReactiveFormsModule, FormGroup } from '@angular/forms';
+import { FormlyModule, FormlyFieldConfig } from '@ngx-formly/core';
+import { FormlyBootstrapModule } from '@ngx-formly/bootstrap';
 import { WorkflowService } from '../../services/workflow.service';
 import { WorkflowHooksService } from '../../services/workflow-hooks.service';
 
 @Component({
   selector: 'app-workflow-step',
   standalone: true,
-  imports: [CommonModule, HttpClientModule, FormsModule, ReactiveFormsModule, RouterLink],
+  imports: [
+    CommonModule, 
+    ReactiveFormsModule, 
+    RouterLink,
+    FormlyModule,
+    FormlyBootstrapModule
+  ],
   providers: [WorkflowService, WorkflowHooksService],
   templateUrl: './workflow-step.component.html',
   styleUrls: ['./workflow-step.component.css']
@@ -21,9 +29,12 @@ export class WorkflowStepComponent implements OnInit {
   instance: any = null;
   stepDefinition: any = null;
   currentData: any = {};
-  formState: any = {}; // Form state for hooks
 
-  form: FormGroup;
+  // Formly configuration
+  form = new FormGroup({});
+  model: any = {};
+  fields: FormlyFieldConfig[] = [];
+
   loading = true;
   submitting = false;
   validating = false;
@@ -36,45 +47,28 @@ export class WorkflowStepComponent implements OnInit {
   // Store loaded hooks for this step
   private stepHooks: any = null;
 
-  // Brand table data
-  brandTable: any[] = [];
-
-  // New brand items (for repeat field)
-  newBrandItems: any[] = [];
-
-  // Store brand options for lookup
-  private brandOptions: any[] = [];
-
-  // Store the repeat field definition for dynamic rendering
-  repeatFieldDef: any = null;
-
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private workflowService: WorkflowService,
     private workflowHooksService: WorkflowHooksService,
     private http: HttpClient,
-    private fb: FormBuilder,
     private cdr: ChangeDetectorRef,
     @Inject(PLATFORM_ID) private platformId: Object
-  ) {
-    this.form = this.fb.group({});
-  }
+  ) {}
 
   ngOnInit(): void {
-    // Only run in browser
     if (!isPlatformBrowser(this.platformId)) {
       return;
     }
 
-    // Get instance ID and step ID from route
     this.route.paramMap.subscribe(params => {
       this.instanceId = params.get('instanceId') || '';
       this.stepId = params.get('stepId') || '';
 
       console.log('=== WORKFLOW STEP COMPONENT INIT ===');
-      console.log('Instance ID from route:', this.instanceId);
-      console.log('Step ID from route:', this.stepId);
+      console.log('Instance ID:', this.instanceId);
+      console.log('Step ID:', this.stepId);
 
       if (this.instanceId) {
         this.loadCurrentStep();
@@ -87,27 +81,16 @@ export class WorkflowStepComponent implements OnInit {
   }
 
   /**
-   * Load the current step definition and data
+   * Load the current step definition and data from API
    */
   async loadCurrentStep(): Promise<void> {
     try {
       this.loading = true;
       this.error = null;
 
-      console.log('=== LOADING CURRENT STEP ===');
-      console.log('Instance ID:', this.instanceId);
-      console.log('Step ID from route:', this.stepId);
-
       const response = await this.workflowService.getCurrentStep(this.instanceId).toPromise();
 
-      console.log('=== API RESPONSE ===');
-      console.log('Full response:', response);
-
-      if (!response) {
-        throw new Error('No response from API');
-      }
-
-      if (!response.stepDefinition) {
+      if (!response || !response.stepDefinition) {
         throw new Error('Step definition is missing in response');
       }
 
@@ -115,51 +98,23 @@ export class WorkflowStepComponent implements OnInit {
       this.stepDefinition = response.stepDefinition;
       this.currentData = response.currentData || {};
 
-      console.log('=== PARSED DATA ===');
-      console.log('Instance:', this.instance);
-      console.log('Instance definitionId:', this.instance?.definitionId);
-      console.log('Step Definition stepId:', this.stepDefinition?.stepId);
-      console.log('Step Definition Fields:', this.stepDefinition?.fields);
+      console.log('=== STEP LOADED ===');
+      console.log('Definition ID:', this.instance?.definitionId);
+      console.log('Step ID:', this.stepDefinition?.stepId);
 
-      // Find and store the repeat field definition
-      if (this.stepDefinition?.fields) {
-        this.repeatFieldDef = this.stepDefinition.fields.find((f: any) => f.type === 'repeat');
-        console.log('Repeat Field Definition:', this.repeatFieldDef);
-        if (this.repeatFieldDef?.fieldArray?.fieldGroup) {
-          console.log('Field Array Group:', this.repeatFieldDef.fieldArray.fieldGroup);
-        }
-      }
+      // Initialize model with current data
+      this.model = { ...this.currentData };
 
-      // Build form from step definition
-      this.buildForm();
+      // Build formly fields from step definition
+      this.fields = this.buildFormlyFields(this.stepDefinition.fields || []);
 
-      // Pre-populate form with existing data
-      if (Object.keys(this.currentData).length > 0) {
-        this.form.patchValue(this.currentData);
-        console.log('Form pre-populated with data');
-        
-        // Restore brandTable if exists in currentData
-        if (this.currentData.brandTable) {
-          this.brandTable = this.currentData.brandTable;
-        }
-        // Restore newBrandItems if exists
-        if (this.currentData.newBrand) {
-          this.newBrandItems = this.currentData.newBrand;
-        }
-      }
-
-      // Load and execute hooks for this step
+      // Load and execute hooks
       await this.loadAndExecuteHooks();
 
       this.loading = false;
-      console.log('=== LOADING COMPLETE ===');
-
-      // Force change detection to ensure UI updates
       this.cdr.detectChanges();
     } catch (error: any) {
-      console.error('=== ERROR LOADING CURRENT STEP ===');
-      console.error('Error:', error);
-
+      console.error('Error loading step:', error);
       this.error = error?.error?.message || error?.message || 'Failed to load workflow step.';
       this.loading = false;
       this.cdr.detectChanges();
@@ -167,161 +122,158 @@ export class WorkflowStepComponent implements OnInit {
   }
 
   /**
+   * Build FormlyFieldConfig array from JSON step definition
+   */
+  private buildFormlyFields(jsonFields: any[]): FormlyFieldConfig[] {
+    return jsonFields.map(field => this.convertToFormlyField(field));
+  }
+
+  /**
+   * Convert a single JSON field to FormlyFieldConfig
+   */
+  private convertToFormlyField(field: any): FormlyFieldConfig {
+    const formlyField: FormlyFieldConfig = {
+      key: field.key,
+      type: field.type,
+      props: {
+        label: field.templateOptions?.label || '',
+        placeholder: field.templateOptions?.placeholder || '',
+        required: field.templateOptions?.required || false,
+        options: field.templateOptions?.options || [],
+        // Pass through all templateOptions
+        ...field.templateOptions
+      },
+      fieldGroup: field.fieldGroup ? this.buildFormlyFields(field.fieldGroup) : undefined,
+      fieldArray: field.fieldArray ? {
+        fieldGroup: field.fieldArray.fieldGroup ? this.buildFormlyFields(field.fieldArray.fieldGroup) : undefined
+      } : undefined
+    };
+
+    // Store hooks reference for later execution
+    if (field.hooks) {
+      (formlyField as any)._hooks = field.hooks;
+      console.log(`Field '${field.key}' has hooks configured:`, field.hooks);
+    }
+
+    // Handle hide expressions
+    if (field.hideExpression) {
+      formlyField.expressions = {
+        hide: field.hideExpression
+      };
+    }
+
+    return formlyField;
+  }
+
+  /**
    * Load hooks and execute onInit hooks for fields
    */
   private async loadAndExecuteHooks(): Promise<void> {
-    if (!this.stepDefinition?.fields) {
-      console.log('No fields in step definition, skipping hooks');
-      return;
-    }
-
     const workflowId = this.instance?.definitionId;
-    const stepId = this.stepDefinition.stepId;
+    const stepId = this.stepDefinition?.stepId;
+
+    console.log('=== LOAD AND EXECUTE HOOKS ===');
+    console.log('  workflowId:', workflowId);
+    console.log('  stepId:', stepId);
+    console.log('  fields count:', this.fields?.length);
+    console.log('  stepDefinition.fields:', this.stepDefinition?.fields);
 
     if (!workflowId || !stepId) {
-      console.log('Cannot load hooks: missing workflowId or stepId');
-      console.log('  workflowId:', workflowId);
-      console.log('  stepId:', stepId);
+      console.log('❌ Cannot load hooks: missing workflowId or stepId');
       return;
     }
 
-    console.log(`=== LOADING HOOKS for ${workflowId}/${stepId} ===`);
+    console.log(`Looking up hooks for: ${workflowId}/${stepId}`);
 
-    // Get hooks from registry (synchronous now)
     this.stepHooks = this.workflowHooksService.getHooksForStep(workflowId, stepId);
 
     if (this.stepHooks) {
-      console.log('Hooks loaded:', Object.keys(this.stepHooks));
-
-      // Process onInit hooks for all fields
-      await this.processFieldHooks(this.stepDefinition.fields);
-
-      // Force change detection after hooks execution
+      console.log('✅ Hooks loaded:', Object.keys(this.stepHooks));
+      
+      // Debug: Log all fields and their _hooks
+      this.fields.forEach(f => {
+        console.log(`  Field '${f.key}' _hooks:`, (f as any)._hooks);
+      });
+      
+      await this.processFieldHooks(this.fields);
       this.cdr.detectChanges();
     } else {
-      console.log('No hooks file found for this step');
+      console.log('❌ No hooks found for this step');
     }
   }
 
   /**
-   * Process hooks for fields recursively
+   * Process onInit hooks for fields recursively
    */
-  private async processFieldHooks(fields: any[]): Promise<void> {
+  private async processFieldHooks(fields: FormlyFieldConfig[]): Promise<void> {
     if (!fields || !this.stepHooks) {
+      console.log('processFieldHooks: No fields or stepHooks');
       return;
     }
 
     for (const field of fields) {
-      // Check if field has hooks defined in JSON
-      if (field.hooks) {
-        console.log(`Field '${field.key}' has hooks:`, field.hooks);
+      const fieldHooks = (field as any)._hooks;
+      
+      console.log(`Processing field '${field.key}':`, {
+        hasHooks: !!fieldHooks,
+        hooks: fieldHooks,
+        availableStepHooks: Object.keys(this.stepHooks)
+      });
+      
+      if (fieldHooks?.onInit) {
+        const hookName = fieldHooks.onInit;
+        console.log(`  Looking for hook function '${hookName}'`);
         
-        // Execute onInit hook
-        if (field.hooks.onInit) {
-          const hookName = field.hooks.onInit;
-          console.log(`Looking for hook '${hookName}' in stepHooks`);
-          
-          if (this.stepHooks[hookName]) {
-            console.log(`Executing onInit hook '${hookName}' for field '${field.key}'`);
-            try {
-              await this.stepHooks[hookName](field, this.form.value, this.formState, this.http);
-              console.log(`Hook '${hookName}' executed successfully`);
-              console.log(`Field options after hook:`, field.templateOptions?.options);
-              
-              // Store brand options for later use
-              if (field.key === 'selectedBrand' && field.templateOptions?.options) {
-                this.brandOptions = field.templateOptions.options;
-                console.log('Brand options stored:', this.brandOptions);
-              }
-            } catch (error) {
-              console.error(`Error executing hook '${hookName}':`, error);
-            }
-          } else {
-            console.warn(`Hook '${hookName}' not found in stepHooks. Available hooks:`, Object.keys(this.stepHooks));
+        if (this.stepHooks[hookName]) {
+          console.log(`  ✅ Executing onInit hook '${hookName}' for field '${field.key}'`);
+          try {
+            await this.stepHooks[hookName](field, this.model, {}, this.http);
+            console.log(`  Hook '${hookName}' executed. Options now:`, field.props?.options);
+          } catch (error) {
+            console.error(`  ❌ Error executing hook '${hookName}':`, error);
           }
+        } else {
+          console.log(`  ❌ Hook function '${hookName}' not found in stepHooks`);
         }
+      }
+
+      // Setup onChange hooks
+      if (fieldHooks?.onChange && this.stepHooks[fieldHooks.onChange]) {
+        const onChangeHookName = fieldHooks.onChange;
+        const originalHooks = field.hooks || {};
+        field.hooks = {
+          ...originalHooks,
+          onInit: (f: FormlyFieldConfig) => {
+            f.formControl?.valueChanges.subscribe(value => {
+              console.log(`Field '${f.key}' changed to:`, value);
+              this.model[f.key as string] = value;
+              this.stepHooks[onChangeHookName](f, this.model, {}, this.http);
+              this.cdr.detectChanges();
+            });
+          }
+        };
       }
 
       // Process nested fields
       if (field.fieldGroup) {
         await this.processFieldHooks(field.fieldGroup);
       }
-      if (field.fieldArray?.fieldGroup) {
-        await this.processFieldHooks(field.fieldArray.fieldGroup);
-      }
     }
   }
 
   /**
-   * Execute a hook by name (can be called from template or other methods)
-   */
-  async executeHook(hookName: string, field?: any): Promise<void> {
-    if (!this.stepHooks || !this.stepHooks[hookName]) {
-      console.log(`Hook '${hookName}' not found`);
-      return;
-    }
-
-    try {
-      await this.stepHooks[hookName](field || {}, this.form.value, this.formState, this.http);
-      this.cdr.detectChanges();
-    } catch (error) {
-      console.error(`Error executing hook '${hookName}':`, error);
-    }
-  }
-
-  /**
-   * Build form dynamically from step definition fields
-   */
-  private buildForm(): void {
-    const formControls: any = {};
-
-    if (this.stepDefinition?.fields) {
-      this.stepDefinition.fields.forEach((field: any) => {
-        // Skip table and repeat fields as they're handled separately
-        if (field.type === 'table' || field.type === 'repeat') {
-          return;
-        }
-
-        let defaultValue;
-
-        if (field.type === 'multicheckbox') {
-          defaultValue = this.currentData[field.key] || [];
-        } else {
-          defaultValue = this.currentData[field.key] || '';
-        }
-
-        formControls[field.key] = [defaultValue];
-      });
-    }
-
-    this.form = this.fb.group(formControls);
-    console.log('Form built with controls:', Object.keys(formControls));
-  }
-
-  /**
-   * Validate form before submission
+   * Validate form
    */
   async validateForm(): Promise<boolean> {
     try {
       this.validating = true;
       this.validationErrors = [];
 
-      // Include brandTable and newBrandItems in form data
-      const formData = {
-        ...this.form.value,
-        brandTable: this.brandTable,
-        newBrand: this.newBrandItems.filter(item => item.saved)
-      };
-
-      console.log('Validating form data:', formData);
-
       const result = await this.workflowService.validateStep(
         this.instanceId,
         this.stepDefinition.stepId,
-        formData
+        this.model
       ).toPromise();
-
-      console.log('Validation result:', result);
 
       if (result && !result.isValid) {
         this.validationErrors = result.errors || [];
@@ -332,50 +284,33 @@ export class WorkflowStepComponent implements OnInit {
       this.validating = false;
       return true;
     } catch (error) {
-      console.error('Error validating form:', error);
+      console.error('Validation error:', error);
       this.validating = false;
       return false;
     }
   }
 
   /**
-   * Submit the current step
+   * Submit the step
    */
   async onSubmit(): Promise<void> {
     try {
       const isValid = await this.validateForm();
-      if (!isValid) {
-        return;
-      }
+      if (!isValid) return;
 
       this.submitting = true;
       this.error = null;
 
-      try {
-        await this.uploadFiles();
-      } catch (uploadError: any) {
-        this.error = uploadError.message || 'Failed to upload files';
-        this.submitting = false;
-        return;
-      }
-
-      // Include brandTable and newBrandItems in submission
-      const formData = {
-        ...this.form.value,
-        brandTable: this.brandTable,
-        newBrand: this.newBrandItems.filter(item => item.saved)
-      };
-
       const submission = {
         certificationId: this.instance.definitionId,
         stepId: this.stepDefinition.stepId,
-        formData: formData,
+        formData: this.model,
         submittedBy: this.getCurrentUserEmail(),
         decision: 'approve',
         comments: ''
       };
 
-      console.log('Submitting step:', submission);
+      console.log('Submitting:', submission);
 
       const updatedInstance = await this.workflowService.submitStep(
         this.instanceId,
@@ -383,8 +318,6 @@ export class WorkflowStepComponent implements OnInit {
       ).toPromise();
 
       if (updatedInstance) {
-        console.log('Step submitted successfully:', updatedInstance);
-
         if (updatedInstance.status === 'completed') {
           this.router.navigate(['/workflow', this.instanceId, 'completed']);
         } else {
@@ -395,231 +328,43 @@ export class WorkflowStepComponent implements OnInit {
 
       this.submitting = false;
     } catch (error: any) {
-      console.error('Error submitting step:', error);
+      console.error('Submit error:', error);
       this.error = error.error?.message || 'Failed to submit step';
       this.submitting = false;
     }
   }
 
+  /**
+   * Check if submit is allowed based on validation config
+   */
+  get canSubmit(): boolean {
+    if (this.submitting || this.validating) return false;
+
+    const validation = this.stepDefinition?.stepConfig?.validation;
+    if (validation) {
+      const targetField = validation.targetField || validation.type;
+      const minRequired = validation.minRequired || 1;
+      const tableData = this.model[targetField];
+      
+      if (Array.isArray(tableData)) {
+        return tableData.length >= minRequired;
+      }
+    }
+
+    return true;
+  }
+
   goBack(): void {
-    console.log('Send back not implemented yet');
+    console.log('Send back not implemented');
   }
 
   cancel(): void {
-    if (confirm('Are you sure you want to cancel this workflow?')) {
+    if (confirm('Are you sure you want to cancel?')) {
       this.router.navigate(['/']);
     }
   }
 
   private getCurrentUserEmail(): string {
     return 'user@example.com';
-  }
-
-  getFieldError(fieldKey: string): string | null {
-    const error = this.validationErrors.find(e => e.field === fieldKey);
-    return error ? error.message : null;
-  }
-
-  hasFieldError(fieldKey: string): boolean {
-    return this.validationErrors.some(e => e.field === fieldKey);
-  }
-
-  onCheckboxChange(fieldKey: string, optionValue: string, event: any): void {
-    const isChecked = event.target.checked;
-    const currentValue = this.form.get(fieldKey)?.value || [];
-
-    let newValue: string[];
-    if (isChecked) {
-      newValue = [...currentValue, optionValue];
-    } else {
-      newValue = currentValue.filter((v: string) => v !== optionValue);
-    }
-
-    this.form.patchValue({ [fieldKey]: newValue });
-  }
-
-  onFileChange(fieldKey: string, event: any): void {
-    const files = event.target.files;
-    if (files && files.length > 0) {
-      const fileArray: File[] = Array.from(files);
-      this.uploadedFiles.set(fieldKey, fileArray);
-      const fileNames = fileArray.map(f => f.name).join(', ');
-      this.form.patchValue({ [fieldKey]: fileNames });
-    }
-  }
-
-  getSelectedFileName(fieldKey: string): string | null {
-    const files = this.uploadedFiles.get(fieldKey);
-    if (files && files.length > 0) {
-      return files.map(f => f.name).join(', ');
-    }
-    return null;
-  }
-
-  async uploadFiles(): Promise<void> {
-    if (this.uploadedFiles.size === 0) {
-      return;
-    }
-
-    for (const [fieldKey, files] of this.uploadedFiles.entries()) {
-      const formData = new FormData();
-      files.forEach((file) => {
-        formData.append(fieldKey, file, file.name);
-      });
-
-      const uploadedBy = this.getCurrentUserEmail();
-      const result = await this.workflowService.uploadFiles(
-        this.instanceId,
-        this.stepDefinition.stepId,
-        uploadedBy,
-        formData
-      ).toPromise();
-
-      if (result?.uploadedFiles?.[fieldKey]) {
-        this.form.patchValue({ [fieldKey]: result.uploadedFiles[fieldKey] });
-      }
-    }
-  }
-
-  /**
-   * Handle select dropdown change
-   */
-  onSelectChange(field: any, event: any): void {
-    const value = event.target.value;
-    console.log(`Select changed for ${field.key}:`, value);
-
-    // Execute onChange hook if defined
-    if (field.hooks?.onChange && this.stepHooks?.[field.hooks.onChange]) {
-      this.stepHooks[field.hooks.onChange](field, this.form.value, this.formState, this.http);
-    }
-
-    this.cdr.detectChanges();
-  }
-
-  /**
-   * Add selected brand to the table
-   */
-  addSelectedBrandToTable(): void {
-    const selectedValue = this.form.get('selectedBrand')?.value;
-    if (!selectedValue) {
-      return;
-    }
-
-    // Find the selected brand from options
-    const selectedBrand = this.brandOptions.find(b => b.value === selectedValue);
-    if (!selectedBrand) {
-      console.log('Brand not found in options');
-      return;
-    }
-
-    // Check if already in table
-    const exists = this.brandTable.some(b => b.nameEn === selectedBrand.label);
-    if (exists) {
-      alert('This brand is already in the table!');
-      return;
-    }
-
-    // Add to table
-    this.brandTable.push({
-      nameEn: selectedBrand.label,
-      nameAr: selectedBrand.labelAr,
-      fileCount: 0,
-      source: 'Existing'
-    });
-
-    // Clear the selection
-    this.form.patchValue({ selectedBrand: '' });
-
-    console.log('Brand added to table:', this.brandTable);
-    this.cdr.detectChanges();
-  }
-
-  /**
-   * Remove brand from table
-   */
-  removeBrandFromTable(index: number): void {
-    this.brandTable.splice(index, 1);
-    console.log('Brand removed from table');
-    this.cdr.detectChanges();
-  }
-
-  /**
-   * Add new brand item (for repeat field)
-   */
-  addNewBrandItem(): void {
-    // Create new item with empty values for each field in the fieldArray
-    const newItem: any = { saved: false };
-    
-    if (this.repeatFieldDef?.fieldArray?.fieldGroup) {
-      this.repeatFieldDef.fieldArray.fieldGroup.forEach((sf: any) => {
-        if (sf.type === 'file') {
-          newItem[sf.key] = [];
-        } else {
-          newItem[sf.key] = '';
-        }
-      });
-    } else {
-      // Fallback defaults
-      newItem.brandNameEn = '';
-      newItem.brandNameAr = '';
-      newItem.attachments = [];
-    }
-
-    this.newBrandItems.push(newItem);
-    console.log('New brand item added:', newItem);
-    console.log('All items:', this.newBrandItems);
-    this.cdr.detectChanges();
-  }
-
-  /**
-   * Remove new brand item
-   */
-  removeNewBrandItem(index: number): void {
-    this.newBrandItems.splice(index, 1);
-    console.log('New brand item removed');
-    this.cdr.detectChanges();
-  }
-
-  /**
-   * Save new brand item and add to table
-   */
-  saveNewBrandItem(index: number): void {
-    const item = this.newBrandItems[index];
-    
-    if (!item.brandNameEn || !item.brandNameAr) {
-      alert('Please fill in both English and Arabic brand names');
-      return;
-    }
-
-    // Mark as saved
-    item.saved = true;
-
-    // Add to brand table
-    this.brandTable.push({
-      nameEn: item.brandNameEn,
-      nameAr: item.brandNameAr,
-      fileCount: item.attachments?.length || 0,
-      source: 'New'
-    });
-
-    console.log('New brand saved and added to table:', item);
-    this.cdr.detectChanges();
-  }
-
-  /**
-   * Handle file change for new brand items
-   */
-  onNewBrandFileChange(itemIndex: number, fieldKey: string, event: any): void {
-    const files = event.target.files;
-    if (files && files.length > 0) {
-      this.newBrandItems[itemIndex][fieldKey] = Array.from(files);
-      console.log(`Files selected for new brand item ${itemIndex}:`, files.length);
-      this.cdr.detectChanges();
-    }
-  }
-
-  // Helper method to get the repeat field's sub-fields
-  getRepeatFieldSubFields(): any[] {
-    return this.repeatFieldDef?.fieldArray?.fieldGroup || [];
   }
 }

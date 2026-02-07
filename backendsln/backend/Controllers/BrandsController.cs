@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 
 namespace backend.Controllers;
 
@@ -87,16 +87,16 @@ public class BrandsController : ControllerBase
     {
         return new List<BrandDto>
         {
-            new BrandDto { Value = "brand_001", Label = "Samsung Electronics", LabelAr = "??????? ??????????" },
-            new BrandDto { Value = "brand_002", Label = "LG Electronics", LabelAr = "?? ?? ??????????" },
-            new BrandDto { Value = "brand_003", Label = "Philips", LabelAr = "??????" },
-            new BrandDto { Value = "brand_004", Label = "Panasonic", LabelAr = "?????????" },
-            new BrandDto { Value = "brand_005", Label = "Sony Corporation", LabelAr = "????" },
-            new BrandDto { Value = "brand_006", Label = "Bosch", LabelAr = "???" },
-            new BrandDto { Value = "brand_007", Label = "Siemens", LabelAr = "?????" },
-            new BrandDto { Value = "brand_008", Label = "Whirlpool", LabelAr = "???????" },
-            new BrandDto { Value = "brand_009", Label = "Electrolux", LabelAr = "??????????" },
-            new BrandDto { Value = "brand_010", Label = "Haier", LabelAr = "????" }
+            new BrandDto { Value = "brand_001", Label = "Samsung Electronics", LabelAr = "سامسونج إلكترونيكس" },
+            new BrandDto { Value = "brand_002", Label = "LG Electronics", LabelAr = "إل جي إلكترونيكس" },
+            new BrandDto { Value = "brand_003", Label = "Philips", LabelAr = "فيليبس" },
+            new BrandDto { Value = "brand_004", Label = "Panasonic", LabelAr = "باناسونيك" },
+            new BrandDto { Value = "brand_005", Label = "Sony Corporation", LabelAr = "سوني" },
+            new BrandDto { Value = "brand_006", Label = "Bosch", LabelAr = "بوش" },
+            new BrandDto { Value = "brand_007", Label = "Siemens", LabelAr = "سيمنز" },
+            new BrandDto { Value = "brand_008", Label = "Whirlpool", LabelAr = "ويرلبول" },
+            new BrandDto { Value = "brand_009", Label = "Electrolux", LabelAr = "إلكترولوكس" },
+            new BrandDto { Value = "brand_010", Label = "Haier", LabelAr = "هاير" }
         };
     }
 }

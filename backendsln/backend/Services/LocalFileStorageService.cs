@@ -18,9 +18,21 @@ public class LocalFileStorageService : IFileStorageService
         _configuration = configuration;
         _logger = logger;
 
-        // Get storage path from configuration or use default
-        _storagePath = configuration["FileStorage:LocalPath"]
-            ?? Path.Combine(Directory.GetCurrentDirectory(), "uploads");
+        // Get storage path from configuration
+        var configuredPath = configuration["FileStorage:LocalPath"];
+        
+        if (!string.IsNullOrEmpty(configuredPath))
+        {
+            // Use configured path - could be absolute or relative
+            _storagePath = Path.IsPathRooted(configuredPath)
+                ? configuredPath
+                : Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), configuredPath));
+        }
+        else
+        {
+            // Default: uploads folder in current directory
+            _storagePath = Path.Combine(Directory.GetCurrentDirectory(), "uploads");
+        }
 
         // Ensure directory exists
         if (!Directory.Exists(_storagePath))

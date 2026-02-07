@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 
 // Import hooks directly
+import * as saso_test_step1_types_hooks from '../components/workflow-code/definition/SASO301_Cooker/saso_test_step1_types';
 import * as saso_test_step2_brands_hooks from '../components/workflow-code/definition/SASO301_Cooker/saso_test_step2_brands';
 
 /**
@@ -15,11 +16,13 @@ export class WorkflowHooksService {
   
   // Static registry of all hooks - add new hooks here
   private static readonly HOOKS_REGISTRY: { [key: string]: any } = {
+    'SASO301_Cooker/saso_test_step1_types': saso_test_step1_types_hooks.hooks,
     'SASO301_Cooker/saso_test_step2_brands': saso_test_step2_brands_hooks.hooks
   };
 
   constructor(private http: HttpClient) {
-    console.log('WorkflowHooksService: Initialized with hooks:', Object.keys(WorkflowHooksService.HOOKS_REGISTRY));
+    console.log('=== WorkflowHooksService INITIALIZED ===');
+    console.log('Registered hooks:', Object.keys(WorkflowHooksService.HOOKS_REGISTRY));
   }
 
   /**
@@ -32,16 +35,21 @@ export class WorkflowHooksService {
   getHooksForStep(workflowId: string, stepId: string): any {
     const cacheKey = `${workflowId}/${stepId}`;
     
-    console.log(`WorkflowHooksService: Looking for hooks: ${cacheKey}`);
+    console.log(`=== WorkflowHooksService.getHooksForStep ===`);
+    console.log(`  workflowId: "${workflowId}"`);
+    console.log(`  stepId: "${stepId}"`);
+    console.log(`  cacheKey: "${cacheKey}"`);
+    console.log(`  Available keys:`, Object.keys(WorkflowHooksService.HOOKS_REGISTRY));
     
     const hooks = WorkflowHooksService.HOOKS_REGISTRY[cacheKey];
     
     if (hooks) {
-      console.log(`WorkflowHooksService: Found hooks for ${cacheKey}:`, Object.keys(hooks));
+      console.log(`  ✅ Found hooks for ${cacheKey}:`, Object.keys(hooks));
       return hooks;
     }
     
-    console.log(`WorkflowHooksService: No hooks found for ${cacheKey}`);
+    console.log(`  ❌ No hooks found for "${cacheKey}"`);
+    console.log(`  Tip: Make sure workflowId matches exactly (case-sensitive)`);
     return null;
   }
 

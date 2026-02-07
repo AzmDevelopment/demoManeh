@@ -85,6 +85,18 @@ public class ValidationRuleFactory
                 ErrorMessage = config.ContainsKey("errorMessage")
                     ? config["errorMessage"]?.ToString() ?? "Invalid file upload"
                     : "Invalid file upload"
+            },
+
+            ["minTableEntries"] = config => new MinTableEntriesRule
+            {
+                RuleId = "minTableEntries",
+                TargetField = config["targetField"]?.ToString() ?? string.Empty,
+                MinRequired = config.ContainsKey("minRequired")
+                    ? Convert.ToInt32(config["minRequired"])
+                    : 1,
+                ErrorMessage = config.ContainsKey("errorMessage")
+                    ? config["errorMessage"]?.ToString()
+                    : null
             }
         };
     }
@@ -187,6 +199,51 @@ public class ValidationRuleFactory
                     : $"{field.TemplateOptions.Label} has invalid file upload";
 
                 rules.Add(CreateRule("fileUpload", fileConfig));
+            }
+        }
+
+        // NEW: Create rule from stepConfig validation
+        if (step.StepConfig?.Validation != null)
+        {
+            var validationConfig = step.StepConfig.Validation;
+            
+            // Handle table/array validation (e.g., brandTable, productTable)
+            if (validationConfig.TryGetValue("type", out var validationType))
+            {
+                var typeStr = validationType?.ToString();
+                
+                // For brandTable or similar table validations
+                if (typeStr == "brandTable" || typeStr == "productTable" || typeStr == "products" || typeStr == "table")
+                {
+                    var targetField = typeStr switch
+                    {
+                        "brandTable" => "brandTable",
+                        "productTable" => "productTable",
+                        "products" => "productTable",
+                        "table" => validationConfig.TryGetValue("targetField", out var tf) ? tf?.ToString() : null,
+                        _ => null
+                    };
+
+                    if (!string.IsNullOrEmpty(targetField))
+                    {
+                        var tableConfig = new Dictionary<string, object>
+                        {
+                            ["targetField"] = targetField
+                        };
+
+                        if (validationConfig.TryGetValue("minRequired", out var minReq))
+                        {
+                            tableConfig["minRequired"] = minReq;
+                        }
+
+                        if (validationConfig.TryGetValue("message", out var msg))
+                        {
+                            tableConfig["errorMessage"] = msg?.ToString();
+                        }
+
+                        rules.Add(CreateRule("minTableEntries", tableConfig));
+                    }
+                }
             }
         }
 

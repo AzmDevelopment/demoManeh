@@ -53,169 +53,23 @@
         <div class="alert alert-danger">
           <h6><i class="bi bi-exclamation-circle"></i> Please fix the following errors:</h6>
           <ul class="mb-0">
-            @for (error of validationErrors; track error.field) {
-              <li>{{ error.message }}</li>
+            @for (err of validationErrors; track err.field) {
+              <li>{{ err.message }}</li>
             }
           </ul>
         </div>
       }
 
-      <!-- Form -->
+      <!-- Form using ngx-formly -->
       <form [formGroup]="form" (ngSubmit)="onSubmit()" class="step-form">
-        <div class="form-fields">
-          @for (field of stepDefinition.fields; track field.key) {
-            <div class="form-group mb-4">
-              <label [for]="field.key" class="form-label">
-                {{ field.templateOptions.label }}
-                @if (field.templateOptions.required) {
-                  <span class="text-danger">*</span>
-                }
-              </label>
-
-              <!-- Text Input -->
-              @if (field.type === 'input' && (!field.templateOptions.type || field.templateOptions.type === 'text')) {
-                <input
-                  [id]="field.key"
-                  [formControlName]="field.key"
-                  type="text"
-                  class="form-control"
-                  [class.is-invalid]="hasFieldError(field.key)"
-                  [placeholder]="field.templateOptions.placeholder || ''"
-                />
-              }
-
-              <!-- Number Input -->
-              @if (field.type === 'input' && field.templateOptions.type === 'number') {
-                <input
-                  [id]="field.key"
-                  [formControlName]="field.key"
-                  type="number"
-                  class="form-control"
-                  [class.is-invalid]="hasFieldError(field.key)"
-                  [min]="field.templateOptions.min"
-                  [max]="field.templateOptions.max"
-                  [step]="field.templateOptions.step"
-                />
-              }
-
-              <!-- Select Dropdown -->
-              @if (field.type === 'select') {
-                <select
-                  [id]="field.key"
-                  [formControlName]="field.key"
-                  class="form-select"
-                  [class.is-invalid]="hasFieldError(field.key)"
-                >
-                  <option value="">Select {{ field.templateOptions.label }}</option>
-                  @for (option of field.templateOptions.options; track option.value) {
-                    <option [value]="option.value">{{ option.label }}</option>
-                  }
-                </select>
-              }
-
-              <!-- Textarea -->
-              @if (field.type === 'textarea') {
-                <textarea
-                  [id]="field.key"
-                  [formControlName]="field.key"
-                  class="form-control"
-                  [class.is-invalid]="hasFieldError(field.key)"
-                  [rows]="field.templateOptions.rows || 3"
-                  [placeholder]="field.templateOptions.placeholder || ''"
-                ></textarea>
-              }
-
-              <!-- Radio Buttons -->
-              @if (field.type === 'radio') {
-                <div class="radio-group">
-                  @for (option of field.templateOptions.options; track option.value) {
-                    <div class="form-check">
-                      <input
-                        class="form-check-input"
-                        type="radio"
-                        [id]="field.key + '_' + option.value"
-                        [formControlName]="field.key"
-                        [value]="option.value"
-                        [class.is-invalid]="hasFieldError(field.key)"
-                      />
-                      <label class="form-check-label" [for]="field.key + '_' + option.value">
-                        {{ option.label }}
-                      </label>
-                    </div>
-                  }
-                </div>
-              }
-
-              <!-- Multi-Checkbox -->
-              @if (field.type === 'multicheckbox') {
-                <div class="checkbox-group">
-                  @for (option of field.templateOptions.options; track option.value) {
-                    <div class="form-check">
-                      <input
-                        class="form-check-input"
-                        type="checkbox"
-                        [id]="field.key + '_' + option.value"
-                        [value]="option.value"
-                        (change)="onCheckboxChange(field.key, option.value, $event)"
-                      />
-                      <label class="form-check-label" [for]="field.key + '_' + option.value">
-                        {{ option.label }}
-                      </label>
-                    </div>
-                  }
-                </div>
-              }
-
-              <!-- Date Input -->
-              @if (field.type === 'date') {
-                <input
-                  [id]="field.key"
-                  [formControlName]="field.key"
-                  type="date"
-                  class="form-control"
-                  [class.is-invalid]="hasFieldError(field.key)"
-                />
-              }
-
-              <!-- File Upload -->
-              @if (field.type === 'file') {
-                <input
-                  [id]="field.key"
-                  type="file"
-                  class="form-control"
-                  [accept]="field.templateOptions.accept"
-                  [multiple]="field.templateOptions.multiple"
-                  (change)="onFileChange(field.key, $event)"
-                />
-                <small class="form-text text-muted">
-                  @if (field.templateOptions.accept) {
-                    Allowed types: {{ field.templateOptions.accept }}
-                  }
-                  @if (field.templateOptions.maxFileSize) {
-                    Max size: {{ field.templateOptions.maxFileSize / 1048576 }}MB
-                  }
-                </small>
-                @if (getSelectedFileName(field.key)) {
-                  <div class="mt-2">
-                    <small class="text-success">
-                      <i class="bi bi-check-circle"></i> Selected: {{ getSelectedFileName(field.key) }}
-                    </small>
-                  </div>
-                }
-              }
-
-              <!-- Field Error -->
-              @if (hasFieldError(field.key)) {
-                <div class="invalid-feedback d-block">
-                  {{ getFieldError(field.key) }}
-                </div>
-              }
-            </div>
-          }
-        </div>
+        <formly-form
+          [form]="form"
+          [fields]="fields"
+          [model]="model">
+        </formly-form>
 
         <!-- Form Actions -->
-        <div class="form-actions">
+        <div class="form-actions mt-4">
           <button
             type="button"
             class="btn btn-outline-secondary"
@@ -249,7 +103,8 @@
           <button
             type="submit"
             class="btn btn-primary"
-            [disabled]="submitting || validating"
+            [disabled]="!canSubmit"
+            [title]="!canSubmit && stepDefinition?.stepConfig?.validation?.message ? stepDefinition.stepConfig.validation.message : ''"
           >
             @if (submitting) {
               <span class="spinner-border spinner-border-sm me-2"></span>
@@ -257,6 +112,13 @@
             <i class="bi bi-arrow-right-circle"></i> Submit & Continue
           </button>
         </div>
+        
+        <!-- Validation hint -->
+        @if (!canSubmit && stepDefinition?.stepConfig?.validation?.message) {
+          <div class="alert alert-warning mt-3">
+            <i class="bi bi-info-circle"></i> {{ stepDefinition.stepConfig.validation.message }}
+          </div>
+        }
       </form>
 
       <!-- Workflow Progress -->

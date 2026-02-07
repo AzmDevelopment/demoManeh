@@ -11,16 +11,13 @@
       "templateOptions": {
         "label": "Select Existing Type",
         "placeholder": "Choose a type...",
-        "required": false,
-        "options": [
-           { "value": "IEC", "label": "IEC" },
-          { "value": "COC", "label": "COC" },
-          { "value": "QML", "label": "QML" }
-        ]
+        "required": true,
+        "options": []
+      },
+      "hooks": {
+        "onInit": "loadTypes"
       }
-     
     }
-  
   ],
 
   "stepConfig": {

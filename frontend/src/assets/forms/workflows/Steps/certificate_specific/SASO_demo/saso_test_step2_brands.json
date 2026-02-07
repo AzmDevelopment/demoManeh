@@ -13,6 +13,10 @@
         "placeholder": "Choose a brand...",
         "required": false,
         "options": []
+      },
+      "hooks": {
+        "onInit": "loadBrands",
+        "onChange": "onBrandSelected"
       }
     },
 
@@ -78,6 +82,11 @@
   "stepConfig": {
     "canSendBack": false,
     "nextStep": "saso_test_step3_products",
-    "estimatedDurationHours": 24
+    "estimatedDurationHours": 24,
+    "validation": {
+      "type": "brandTable",
+      "minRequired": 1,
+      "message": "Please select an existing brand or add a new one before proceeding"
+    }
   }
 }

@@ -4,19 +4,19 @@ import { HttpClient } from '@angular/common/http';
 import { FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { FormlyModule, FormlyFieldConfig } from '@ngx-formly/core';
 import { FormlyBootstrapModule } from '@ngx-formly/bootstrap';
-import { forkJoin } from 'rxjs';
+import { WorkflowHooksService } from '../../services/workflow-hooks.service';
 
 export interface WorkflowDefinition {
   certificationId: string;
   name: string;
   description: string;
   version: string;
-  metadata: {
-    workflowCode: string;
-    applicableCertificateTypes: string[];
-    estimatedTotalDurationDays: number;
-    complexity: string;
-    requiresFactoryVisit: boolean;
+  metadata?: {
+    workflowCode?: string;
+    applicableCertificateTypes?: string[];
+    estimatedTotalDurationDays?: number;
+    complexity?: string;
+    requiresFactoryVisit?: boolean;
   };
   steps: WorkflowStep[];
 }
@@ -53,6 +53,10 @@ export interface StepDefinition {
 })
 export class WorkflowSelectorComponent implements OnInit {
   private http = inject(HttpClient);
+  private workflowHooksService = inject(WorkflowHooksService);
+
+  // Backend API base URL
+  private apiUrl = '/api/Workflow';
 
   workflows = signal<WorkflowDefinition[]>([]);
   selectedWorkflow = signal<WorkflowDefinition | null>(null);
@@ -69,35 +73,30 @@ export class WorkflowSelectorComponent implements OnInit {
   // Store form data for each step
   stepFormData: Record<string, any> = {};
 
-  private definitionsPath = 'assets/forms/workflows/Definitions';
-
-  // List of workflow definition files
-  private workflowFiles = [
-    'BT501_shampoo_new.json',
-    'CT401_lithium_battery_new.json',
-    'SASO301_Cooker.json'
-  ];
+  // Store loaded hooks for current step
+  private stepHooks: any = null;
 
   ngOnInit(): void {
     this.loadWorkflowDefinitions();
   }
 
+  /**
+   * Load workflow definitions from backend API
+   * Endpoint: GET /api/Workflow/definitions
+   */
   loadWorkflowDefinitions(): void {
     this.loading.set(true);
     this.error.set(null);
 
-    const requests = this.workflowFiles.map(file =>
-      this.http.get<WorkflowDefinition>(`${this.definitionsPath}/${file}`)
-    );
-
-    forkJoin(requests).subscribe({
+    this.http.get<WorkflowDefinition[]>(`${this.apiUrl}/definitions`).subscribe({
       next: (definitions: WorkflowDefinition[]) => {
+        console.log('Loaded workflow definitions from API:', definitions);
         this.workflows.set(definitions);
         this.loading.set(false);
       },
-      error: (err: Error) => {
-        console.error('Error loading workflow definitions:', err);
-        this.error.set('Failed to load workflow definitions');
+      error: (err: any) => {
+        console.error('Error loading workflow definitions from API:', err);
+        this.error.set('Failed to load workflow definitions. Please ensure the backend is running.');
         this.loading.set(false);
       }
     });
@@ -110,20 +109,24 @@ export class WorkflowSelectorComponent implements OnInit {
     this.loadFirstStep(workflow);
   }
 
+  /**
+   * Load first step definition from backend API
+   * Endpoint: GET /api/Workflow/steps/{stepRef}
+   */
   private loadFirstStep(workflow: WorkflowDefinition): void {
     const firstStep = workflow.steps[0];
     
     if (firstStep.stepRef) {
       this.loading.set(true);
-      const stepPath = `assets/forms/${firstStep.stepRef}.json`;
       
-      this.http.get<StepDefinition>(stepPath).subscribe({
-        next: (stepDef: StepDefinition) => {
-          this.setCurrentStep(stepDef);
+      // Use backend API to get step definition
+      this.http.get<StepDefinition>(`${this.apiUrl}/steps/${encodeURIComponent(firstStep.stepRef)}`).subscribe({
+        next: async (stepDef: StepDefinition) => {
+          await this.setCurrentStep(stepDef);
           this.loading.set(false);
         },
-        error: (err: Error) => {
-          console.error('Error loading step definition:', err);
+        error: (err: any) => {
+          console.error('Error loading step definition from API:', err);
           this.error.set('Failed to load step definition');
           this.loading.set(false);
         }
@@ -131,7 +134,7 @@ export class WorkflowSelectorComponent implements OnInit {
     }
   }
 
-  private setCurrentStep(stepDef: StepDefinition): void {
+  private async setCurrentStep(stepDef: StepDefinition): Promise<void> {
     this.currentStep.set(stepDef);
     
     // Reset form for new step
@@ -140,9 +143,70 @@ export class WorkflowSelectorComponent implements OnInit {
     // Load saved data for this step if exists, otherwise empty model
     this.model = this.stepFormData[stepDef.stepId] || {};
     
-    // Convert fields from JSON to formly format
+    // Convert fields from JSON to formly format (with hooks stored)
     const convertedFields = this.convertFieldsToFormly(stepDef.fields);
     this.fields.set(convertedFields);
+
+    // Load and execute hooks for this step
+    await this.loadAndExecuteHooks(stepDef, convertedFields);
+  }
+
+  /**
+   * Load and execute hooks for the current step
+   */
+  private async loadAndExecuteHooks(stepDef: StepDefinition, fields: FormlyFieldConfig[]): Promise<void> {
+    const workflow = this.selectedWorkflow();
+    if (!workflow) return;
+
+    const workflowId = workflow.certificationId;
+    const stepId = stepDef.stepId;
+
+    console.log(`=== LOADING HOOKS for ${workflowId}/${stepId} ===`);
+
+    this.stepHooks = this.workflowHooksService.getHooksForStep(workflowId, stepId);
+
+    if (this.stepHooks) {
+      console.log('✅ Hooks loaded:', Object.keys(this.stepHooks));
+      await this.processFieldHooks(fields);
+    } else {
+      console.log('❌ No hooks found for this step');
+    }
+  }
+
+  /**
+   * Process onInit hooks for fields
+   */
+  private async processFieldHooks(fields: FormlyFieldConfig[]): Promise<void> {
+    if (!fields || !this.stepHooks) return;
+
+    for (const field of fields) {
+      const fieldHooks = (field as any)._hooks;
+      
+      if (fieldHooks?.onInit) {
+        const hookName = fieldHooks.onInit;
+        console.log(`Looking for hook '${hookName}' for field '${field.key}'`);
+        
+        if (this.stepHooks[hookName]) {
+          console.log(`✅ Executing onInit hook '${hookName}' for field '${field.key}'`);
+          try {
+            await this.stepHooks[hookName](field, this.model, {}, this.http);
+            console.log(`Hook '${hookName}' executed. Options:`, field.props?.options);
+            
+            // Update the fields signal to trigger re-render
+            this.fields.set([...this.fields()]);
+          } catch (error) {
+            console.error(`❌ Error executing hook '${hookName}':`, error);
+          }
+        } else {
+          console.log(`❌ Hook function '${hookName}' not found`);
+        }
+      }
+
+      // Process nested fields
+      if (field.fieldGroup) {
+        await this.processFieldHooks(field.fieldGroup);
+      }
+    }
   }
 
   private convertFieldsToFormly(jsonFields: any[]): FormlyFieldConfig[] {
@@ -152,6 +216,12 @@ export class WorkflowSelectorComponent implements OnInit {
         type: field.type,
         props: this.convertProps(field)
       };
+
+      // Store hooks reference for later execution
+      if (field.hooks) {
+        (formlyField as any)._hooks = field.hooks;
+        console.log(`Field '${field.key}' has hooks:`, field.hooks);
+      }
 
       // Handle fieldArray for repeat type
       if (field.fieldArray && field.type === 'repeat') {
@@ -227,6 +297,9 @@ export class WorkflowSelectorComponent implements OnInit {
     }
   }
 
+  /**
+   * Load next step definition from backend API
+   */
   loadNextStep(): void {
     // Save current step data before navigating
     this.saveCurrentStepData();
@@ -242,15 +315,14 @@ export class WorkflowSelectorComponent implements OnInit {
         this.loading.set(true);
         this.currentStepIndex.set(nextIndex);
         
-        const stepPath = `assets/forms/${nextStepDef.stepRef}.json`;
-        
-        this.http.get<StepDefinition>(stepPath).subscribe({
-          next: (stepDef: StepDefinition) => {
-            this.setCurrentStep(stepDef);
+        // Use backend API to get step definition
+        this.http.get<StepDefinition>(`${this.apiUrl}/steps/${encodeURIComponent(nextStepDef.stepRef)}`).subscribe({
+          next: async (stepDef: StepDefinition) => {
+            await this.setCurrentStep(stepDef);
             this.loading.set(false);
           },
-          error: (err: Error) => {
-            console.error('Error loading step definition:', err);
+          error: (err: any) => {
+            console.error('Error loading step definition from API:', err);
             this.error.set('Failed to load step definition');
             this.loading.set(false);
           }
@@ -264,6 +336,9 @@ export class WorkflowSelectorComponent implements OnInit {
     }
   }
 
+  /**
+   * Load previous step definition from backend API
+   */
   loadPreviousStep(): void {
     // Save current step data before navigating
     this.saveCurrentStepData();
@@ -279,15 +354,14 @@ export class WorkflowSelectorComponent implements OnInit {
         this.loading.set(true);
         this.currentStepIndex.set(prevIndex);
         
-        const stepPath = `assets/forms/${prevStepDef.stepRef}.json`;
-        
-        this.http.get<StepDefinition>(stepPath).subscribe({
-          next: (stepDef: StepDefinition) => {
-            this.setCurrentStep(stepDef);
+        // Use backend API to get step definition
+        this.http.get<StepDefinition>(`${this.apiUrl}/steps/${encodeURIComponent(prevStepDef.stepRef)}`).subscribe({
+          next: async (stepDef: StepDefinition) => {
+            await this.setCurrentStep(stepDef);
             this.loading.set(false);
           },
-          error: (err: Error) => {
-            console.error('Error loading step definition:', err);
+          error: (err: any) => {
+            console.error('Error loading step definition from API:', err);
             this.error.set('Failed to load step definition');
             this.loading.set(false);
           }
@@ -305,6 +379,7 @@ export class WorkflowSelectorComponent implements OnInit {
     this.model = {};
     this.fields.set([]);
     this.stepFormData = {};
+    this.stepHooks = null;
   }
 
   isLastStep(): boolean {
@@ -321,7 +396,8 @@ export class WorkflowSelectorComponent implements OnInit {
     return this.form.valid;
   }
 
-  getComplexityClass(complexity: string): string {
+  getComplexityClass(complexity: string | undefined): string {
+    if (!complexity) return '';
     switch (complexity.toLowerCase()) {
       case 'low': return 'complexity-low';
       case 'medium': return 'complexity-medium';

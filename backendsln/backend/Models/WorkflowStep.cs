@@ -49,6 +49,7 @@ public class SelectOption
 public class FieldHooks
 {
     public string? OnInit { get; set; }
+    public string? OnChange { get; set; }
 }
 
 public class FieldValidation
@@ -62,6 +63,7 @@ public class StepConfiguration
     public int EstimatedDurationHours { get; set; }
     public string? NextStep { get; set; }
     public bool IsMandatory { get; set; }
+    public Dictionary<string, object>? Validation { get; set; }
 }
 
 public class ValidationMessage

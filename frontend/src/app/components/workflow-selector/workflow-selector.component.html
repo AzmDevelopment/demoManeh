@@ -37,16 +37,20 @@
               
               @if (workflow.metadata) {
                 <div class="metadata">
-                  <div class="meta-item">
-                    <span class="label">Duration:</span>
-                    <span class="value">{{ workflow.metadata.estimatedTotalDurationDays }} days</span>
-                  </div>
-                  <div class="meta-item">
-                    <span class="label">Complexity:</span>
-                    <span class="value complexity-badge" [ngClass]="getComplexityClass(workflow.metadata.complexity)">
-                      {{ workflow.metadata.complexity }}
-                    </span>
-                  </div>
+                  @if (workflow.metadata.estimatedTotalDurationDays) {
+                    <div class="meta-item">
+                      <span class="label">Duration:</span>
+                      <span class="value">{{ workflow.metadata.estimatedTotalDurationDays }} days</span>
+                    </div>
+                  }
+                  @if (workflow.metadata.complexity) {
+                    <div class="meta-item">
+                      <span class="label">Complexity:</span>
+                      <span class="value complexity-badge" [ngClass]="getComplexityClass(workflow.metadata.complexity)">
+                        {{ workflow.metadata.complexity }}
+                      </span>
+                    </div>
+                  }
                   <div class="meta-item">
                     <span class="label">Steps:</span>
                     <span class="value">{{ workflow.steps?.length || 0 }}</span>
