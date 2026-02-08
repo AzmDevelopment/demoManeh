@@ -239,6 +239,147 @@ public class WorkflowEngine : IWorkflowEngine
         return await _repository.GetWorkflowsByStatusAsync(status, actor);
     }
 
+    public async Task<WorkflowInstance?> SaveDraftDataAsync(Guid instanceId, Dictionary<string, object> formData)
+    {
+        var instance = await _repository.GetWorkflowInstanceAsync(instanceId);
+        if (instance == null)
+        {
+            return null;
+        }
+
+        // Merge new data with existing data
+        foreach (var kvp in formData)
+        {
+            instance.CurrentData[kvp.Key] = kvp.Value;
+        }
+
+        await _repository.SaveWorkflowInstanceAsync(instance);
+        
+        _logger.LogInformation("Saved draft data for workflow instance {InstanceId}", instanceId);
+
+        return instance;
+    }
+
+    public async Task<WorkflowInstance?> AdvanceToNextStepAsync(
+        Guid instanceId, 
+        string currentStepId, 
+        string nextStepId, 
+        Dictionary<string, object> formData,
+        string submittedBy)
+    {
+        var instance = await _repository.GetWorkflowInstanceAsync(instanceId);
+        if (instance == null)
+        {
+            return null;
+        }
+
+        var definition = await _definitionProvider.GetDefinitionAsync(instance.DefinitionId);
+        if (definition == null)
+        {
+            throw new InvalidOperationException("Workflow definition not found");
+        }
+
+        // Track changes
+        var changedFields = TrackFieldChanges(instance.CurrentData, formData);
+
+        // Update instance data
+        foreach (var kvp in formData)
+        {
+            instance.CurrentData[kvp.Key] = kvp.Value;
+        }
+
+        // Add to history - save the current step's data before moving to next
+        var historyEntry = new StepHistoryEntry
+        {
+            StepId = currentStepId,
+            CompletedAt = DateTime.UtcNow,
+            CompletedBy = submittedBy,
+            ActorRole = GetCurrentStepActor(definition, currentStepId),
+            DataSnapshot = new Dictionary<string, object>(formData), // Save only this step's data
+            ChangedFields = changedFields,
+            Decision = "advance",
+            Comments = null
+        };
+
+        instance.StepHistory.Add(historyEntry);
+
+        // Update current step to next step
+        instance.CurrentStep = nextStepId;
+
+        // Update assigned actor for next step
+        var nextStepRef = definition.Steps.FirstOrDefault(s => 
+            s.StepRef?.EndsWith(nextStepId) == true || s.StepId == nextStepId);
+        if (nextStepRef != null)
+        {
+            var nextStepDef = await _definitionProvider.GetStepDefinitionAsync(nextStepRef.StepRef);
+            if (nextStepDef != null)
+            {
+                instance.AssignedActor = nextStepDef.Actor;
+            }
+        }
+
+        await _repository.SaveWorkflowInstanceAsync(instance);
+        
+        _logger.LogInformation("Advanced workflow instance {InstanceId} from step {CurrentStep} to {NextStep}", 
+            instanceId, currentStepId, nextStepId);
+
+        return instance;
+    }
+
+    public async Task<WorkflowInstance?> GoToPreviousStepAsync(Guid instanceId, string previousStepId)
+    {
+        var instance = await _repository.GetWorkflowInstanceAsync(instanceId);
+        if (instance == null)
+        {
+            return null;
+        }
+
+        var definition = await _definitionProvider.GetDefinitionAsync(instance.DefinitionId);
+        if (definition == null)
+        {
+            throw new InvalidOperationException("Workflow definition not found");
+        }
+
+        // Update current step to previous step
+        instance.CurrentStep = previousStepId;
+
+        // Update assigned actor for previous step
+        var prevStepRef = definition.Steps.FirstOrDefault(s => 
+            s.StepRef?.EndsWith(previousStepId) == true || s.StepId == previousStepId);
+        if (prevStepRef != null)
+        {
+            var prevStepDef = await _definitionProvider.GetStepDefinitionAsync(prevStepRef.StepRef);
+            if (prevStepDef != null)
+            {
+                instance.AssignedActor = prevStepDef.Actor;
+            }
+        }
+
+        await _repository.SaveWorkflowInstanceAsync(instance);
+        
+        _logger.LogInformation("Moved workflow instance {InstanceId} back to step {PreviousStep}", 
+            instanceId, previousStepId);
+
+        return instance;
+    }
+
+    public async Task<StepHistoryEntry?> GetStepHistoryAsync(Guid instanceId, string stepId)
+    {
+        var instance = await _repository.GetWorkflowInstanceAsync(instanceId);
+        if (instance == null)
+        {
+            return null;
+        }
+
+        // Find the most recent history entry for this step
+        var historyEntry = instance.StepHistory
+            .Where(h => h.StepId == stepId)
+            .OrderByDescending(h => h.CompletedAt)
+            .FirstOrDefault();
+
+        return historyEntry;
+    }
+
     private Dictionary<string, FieldChange> TrackFieldChanges(
         Dictionary<string, object> oldData,
         Dictionary<string, object> newData)

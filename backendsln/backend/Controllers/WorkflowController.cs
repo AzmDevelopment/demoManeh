@@ -277,6 +277,144 @@ public class WorkflowController : ControllerBase
     }
 
     /// <summary>
+    /// Save draft data for a workflow step (without completing the step)
+    /// </summary>
+    /// <param name="instanceId">The workflow instance ID</param>
+    /// <param name="request">The data to save</param>
+    /// <returns>Updated workflow instance</returns>
+    /// <response code="200">Returns the updated workflow instance</response>
+    /// <response code="404">If the workflow instance is not found</response>
+    /// <response code="500">If there was an internal server error</response>
+    [HttpPatch("instances/{instanceId}/data")]
+    [ProducesResponseType(typeof(WorkflowInstance), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<WorkflowInstance>> SaveDraftData(
+        Guid instanceId,
+        [FromBody] SaveDraftDataRequest request)
+    {
+        try
+        {
+            var instance = await _workflowEngine.SaveDraftDataAsync(instanceId, request.FormData);
+            if (instance == null)
+            {
+                return NotFound(new { message = $"Workflow instance not found: {instanceId}" });
+            }
+
+            return Ok(instance);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error saving draft data for instance {InstanceId}", instanceId);
+            return StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
+    /// <summary>
+    /// Advance to the next step and save current step to history
+    /// </summary>
+    /// <param name="instanceId">The workflow instance ID</param>
+    /// <param name="request">The advance step request</param>
+    /// <returns>Updated workflow instance</returns>
+    /// <response code="200">Returns the updated workflow instance</response>
+    /// <response code="404">If the workflow instance is not found</response>
+    /// <response code="500">If there was an internal server error</response>
+    [HttpPost("instances/{instanceId}/advance")]
+    [ProducesResponseType(typeof(WorkflowInstance), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<WorkflowInstance>> AdvanceToNextStep(
+        Guid instanceId,
+        [FromBody] AdvanceStepRequest request)
+    {
+        try
+        {
+            var instance = await _workflowEngine.AdvanceToNextStepAsync(
+                instanceId, 
+                request.CurrentStepId, 
+                request.NextStepId, 
+                request.FormData,
+                request.SubmittedBy);
+            
+            if (instance == null)
+            {
+                return NotFound(new { message = $"Workflow instance not found: {instanceId}" });
+            }
+
+            return Ok(instance);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error advancing step for instance {InstanceId}", instanceId);
+            return StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
+    /// <summary>
+    /// Go back to a previous step
+    /// </summary>
+    /// <param name="instanceId">The workflow instance ID</param>
+    /// <param name="request">The go back request</param>
+    /// <returns>Updated workflow instance</returns>
+    /// <response code="200">Returns the updated workflow instance</response>
+    /// <response code="404">If the workflow instance is not found</response>
+    /// <response code="500">If there was an internal server error</response>
+    [HttpPost("instances/{instanceId}/go-back")]
+    [ProducesResponseType(typeof(WorkflowInstance), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<WorkflowInstance>> GoToPreviousStep(
+        Guid instanceId,
+        [FromBody] GoBackRequest request)
+    {
+        try
+        {
+            var instance = await _workflowEngine.GoToPreviousStepAsync(instanceId, request.PreviousStepId);
+            if (instance == null)
+            {
+                return NotFound(new { message = $"Workflow instance not found: {instanceId}" });
+            }
+
+            return Ok(instance);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error going back for instance {InstanceId}", instanceId);
+            return StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
+    /// <summary>
+    /// Get step history data for a specific step
+    /// </summary>
+    /// <param name="instanceId">The workflow instance ID</param>
+    /// <param name="stepId">The step ID</param>
+    /// <returns>Step history entry with saved data</returns>
+    /// <response code="200">Returns the step history</response>
+    /// <response code="404">If not found</response>
+    [HttpGet("instances/{instanceId}/steps/{stepId}/history")]
+    [ProducesResponseType(typeof(StepHistoryEntry), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<StepHistoryEntry>> GetStepHistory(Guid instanceId, string stepId)
+    {
+        try
+        {
+            var historyEntry = await _workflowEngine.GetStepHistoryAsync(instanceId, stepId);
+            if (historyEntry == null)
+            {
+                return NotFound(new { message = $"No history found for step: {stepId}" });
+            }
+
+            return Ok(historyEntry);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting step history for instance {InstanceId}, step {StepId}", instanceId, stepId);
+            return StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
+    /// <summary>
     /// Get the current step definition for a workflow instance
     /// </summary>
     /// <param name="instanceId">The workflow instance ID</param>

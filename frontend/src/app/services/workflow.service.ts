@@ -70,6 +70,28 @@ export interface CurrentStepResponse {
   currentData: any;
 }
 
+export interface AdvanceStepRequest {
+  currentStepId: string;
+  nextStepId: string;
+  formData: any;
+  submittedBy: string;
+}
+
+export interface GoBackRequest {
+  previousStepId: string;
+}
+
+export interface StepHistoryEntry {
+  stepId: string;
+  completedAt: string;
+  completedBy: string;
+  actorRole: string;
+  dataSnapshot: any;
+  changedFields?: any;
+  decision?: string;
+  comments?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -141,6 +163,16 @@ export class WorkflowService {
   }
 
   /**
+   * Save draft data for a workflow step (without completing the step)
+   */
+  saveDraftData(instanceId: string, formData: any): Observable<WorkflowInstance> {
+    return this.http.patch<WorkflowInstance>(
+      `${this.apiUrl}/instances/${instanceId}/data`,
+      { formData }
+    );
+  }
+
+  /**
    * Get workflow instances by status
    */
   getWorkflowsByStatus(status: string, actor?: string): Observable<WorkflowInstance[]> {
@@ -181,5 +213,34 @@ export class WorkflowService {
     return this.http.get(`${this.apiUrl}/files/${fileName}`, {
       responseType: 'blob'
     });
+  }
+
+  /**
+   * Advance to the next step and save current step to history
+   */
+  advanceToNextStep(instanceId: string, request: AdvanceStepRequest): Observable<WorkflowInstance> {
+    return this.http.post<WorkflowInstance>(
+      `${this.apiUrl}/instances/${instanceId}/advance`,
+      request
+    );
+  }
+
+  /**
+   * Go back to a previous step
+   */
+  goToPreviousStep(instanceId: string, previousStepId: string): Observable<WorkflowInstance> {
+    return this.http.post<WorkflowInstance>(
+      `${this.apiUrl}/instances/${instanceId}/go-back`,
+      { previousStepId }
+    );
+  }
+
+  /**
+   * Get step history data for a specific step
+   */
+  getStepHistory(instanceId: string, stepId: string): Observable<StepHistoryEntry> {
+    return this.http.get<StepHistoryEntry>(
+      `${this.apiUrl}/instances/${instanceId}/steps/${stepId}/history`
+    );
   }
 }

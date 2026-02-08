@@ -38,24 +38,22 @@ export async function loadTypes(
     console.log('loadTypes: Received types from API:', types);
 
     if (types && Array.isArray(types)) {
-      // For JSON Forms, we need to update the schema's enum property
-      // The field parameter should have access to the schema
-
-      // Extract just the values for the enum
-      const enumValues = types.map(type => type.value);
+      // Store the full type objects in the model for reference
+      model._typesData = types;
 
       // If field has schema access, update it
       if (field.schema && field.schema.properties && field.schema.properties.selectedType) {
-        field.schema.properties.selectedType.enum = enumValues;
+        // For JSON Forms Angular Material, we use enum with the LABEL as the value
+        // This way the dropdown shows the label and stores the label
+        // We keep the mapping in _typesData for any value-to-label lookups needed
+        const enumLabels = types.map(type => type.label);
+        
+        field.schema.properties.selectedType.enum = enumLabels;
+        
         console.log('loadTypes: Updated schema.properties.selectedType.enum:', field.schema.properties.selectedType.enum);
-        console.log('loadTypes: Full schema:', JSON.stringify(field.schema, null, 2));
       }
 
-      // Also store the full type objects in the model for reference (optional)
-      model._typesData = types;
-
       console.log(`loadTypes: Successfully loaded ${types.length} types`);
-      console.log('loadTypes: Enum values:', enumValues);
     } else {
       console.warn('loadTypes: API returned invalid data');
       if (field.schema && field.schema.properties && field.schema.properties.selectedType) {

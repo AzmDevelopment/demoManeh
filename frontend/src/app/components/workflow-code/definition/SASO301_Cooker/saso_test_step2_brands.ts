@@ -44,22 +44,22 @@ export async function loadBrands(field: any, model: any, formState: any, http: H
     console.log('loadBrands: Received brands from API:', brands);
 
     if (brands && Array.isArray(brands)) {
-      // For JSON Forms, we need to update the schema's enum property
-      // Extract just the values for the enum
-      const enumValues = brands.map(brand => brand.value);
-
       // Store the brand data in the model for later use (for onChange hook)
       model._brandsData = brands;
 
       // If field has schema access, update it
       if (field.schema && field.schema.properties && field.schema.properties.selectedBrand) {
-        field.schema.properties.selectedBrand.enum = enumValues;
+        // For JSON Forms Angular Material, we use enum with the LABEL as the value
+        // This way the dropdown shows the label and stores the label
+        // We keep the mapping in _brandsData for any label-to-details lookups needed
+        const enumLabels = brands.map(brand => brand.label);
+        
+        field.schema.properties.selectedBrand.enum = enumLabels;
+        
         console.log('loadBrands: Updated schema.properties.selectedBrand.enum:', field.schema.properties.selectedBrand.enum);
-        console.log('loadBrands: Full schema:', JSON.stringify(field.schema, null, 2));
       }
 
       console.log(`loadBrands: Successfully loaded ${brands.length} brands`);
-      console.log('loadBrands: Enum values:', enumValues);
     } else {
       console.warn('loadBrands: API returned invalid data (not an array)');
       if (field.schema && field.schema.properties && field.schema.properties.selectedBrand) {
@@ -84,15 +84,16 @@ export async function loadBrands(field: any, model: any, formState: any, http: H
 export function onBrandSelected(field: any, model: any): void {
   console.log('onBrandSelected: Brand selected:', model.selectedBrand);
 
-  const selectedBrand = model.selectedBrand;
-  if (!selectedBrand) {
+  const selectedBrandLabel = model.selectedBrand;
+  if (!selectedBrandLabel) {
     console.log('onBrandSelected: No brand selected, skipping');
     return;
   }
 
   // Get brand data from model (stored during loadBrands)
+  // Now we search by LABEL since that's what we store in the dropdown
   const brandsData = model._brandsData || [];
-  const brandOption = brandsData.find((brand: Brand) => brand.value === selectedBrand);
+  const brandOption = brandsData.find((brand: Brand) => brand.label === selectedBrandLabel);
 
   console.log('onBrandSelected: Found brand option:', brandOption);
 

@@ -4,6 +4,7 @@ import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { JsonFormComponent, FormFieldDefinition } from '../json-form/json-form.component';
 import { WorkflowHooksService } from '../../services/workflow-hooks.service';
+import { WorkflowService, WorkflowInstance, StepHistoryEntry } from '../../services/workflow.service';
 
 export interface WorkflowDefinition {
   certificationId: string;
@@ -76,6 +77,7 @@ export class WorkflowSelectorComponent implements OnInit {
   
   private http = inject(HttpClient);
   private workflowHooksService = inject(WorkflowHooksService);
+  private workflowService = inject(WorkflowService);
   private cdr = inject(ChangeDetectorRef);
 
   // Backend API base URL
@@ -87,6 +89,9 @@ export class WorkflowSelectorComponent implements OnInit {
   currentStepIndex = signal<number>(0);
   loading = signal<boolean>(false);
   error = signal<string | null>(null);
+
+  // Current workflow instance
+  currentInstance = signal<WorkflowInstance | null>(null);
 
   // Form state
   model: Record<string, any> = {};
@@ -128,10 +133,27 @@ export class WorkflowSelectorComponent implements OnInit {
   }
 
   startWorkflow(workflow: WorkflowDefinition): void {
+    this.loading.set(true);
     this.selectedWorkflow.set(workflow);
     this.currentStepIndex.set(0);
     this.stepFormData = {};
-    this.loadFirstStep(workflow);
+
+    // Create workflow instance in database
+    this.workflowService.createWorkflowInstance({
+      certificationId: workflow.certificationId,
+      createdBy: 'user@example.com' // TODO: Replace with actual user
+    }).subscribe({
+      next: (instance: WorkflowInstance) => {
+        console.log('Created workflow instance:', instance);
+        this.currentInstance.set(instance);
+        this.loadFirstStep(workflow);
+      },
+      error: (err: any) => {
+        console.error('Error creating workflow instance:', err);
+        this.error.set('Failed to create workflow instance');
+        this.loading.set(false);
+      }
+    });
   }
 
   /**
@@ -157,14 +179,38 @@ export class WorkflowSelectorComponent implements OnInit {
     }
   }
 
-  private async setCurrentStep(stepDef: StepDefinition): Promise<void> {
+  private async setCurrentStep(stepDef: StepDefinition, loadFromHistory: boolean = false): Promise<void> {
     console.log('=== SET CURRENT STEP ===');
     console.log('Step definition received from API:', JSON.stringify(stepDef, null, 2));
+    console.log('Load from history:', loadFromHistory);
 
     this.currentStep.set(stepDef);
 
-    // Load saved data for this step if exists, otherwise empty model
-    this.model = this.stepFormData[stepDef.stepId] || {};
+    // Load saved data for this step
+    if (loadFromHistory) {
+      // Try to load from step history first
+      const instance = this.currentInstance();
+      if (instance) {
+        try {
+          const historyEntry = await this.workflowService.getStepHistory(instance.id, stepDef.stepId).toPromise();
+          if (historyEntry?.dataSnapshot) {
+            console.log('Loaded data from step history:', historyEntry.dataSnapshot);
+            this.model = { ...historyEntry.dataSnapshot };
+            this.stepFormData[stepDef.stepId] = { ...historyEntry.dataSnapshot };
+          } else {
+            this.model = this.stepFormData[stepDef.stepId] || {};
+          }
+        } catch (err) {
+          console.log('No history found for step, using local data');
+          this.model = this.stepFormData[stepDef.stepId] || {};
+        }
+      } else {
+        this.model = this.stepFormData[stepDef.stepId] || {};
+      }
+    } else {
+      // Load from local cache
+      this.model = this.stepFormData[stepDef.stepId] || {};
+    }
 
     // Check if step uses JSON Forms format (schema/uischema) or legacy format (fields)
     if (stepDef.schema) {
@@ -335,7 +381,7 @@ export class WorkflowSelectorComponent implements OnInit {
   onFieldChange(event: { key: string; value: any }): void {
     console.log('onFieldChange called:', event.key, event.value);
     
-    const field = this.fields().find(f => f.key === event.key);
+    const field = this.fields().find((f: FormFieldDefinition) => f.key === event.key);
     if (field?.hooks?.onChange && this.stepHooks?.[field.hooks.onChange]) {
       console.log(`Executing onChange hook '${field.hooks.onChange}' for field '${event.key}'`);
       
@@ -403,15 +449,104 @@ export class WorkflowSelectorComponent implements OnInit {
   }
 
   /**
+   * Extract only the form field values from model (exclude dropdown options, etc.)
+   */
+  private getFormDataForSave(): Record<string, any> {
+    const step = this.currentStep();
+    if (!step) return {};
+
+    const formData: Record<string, any> = {};
+
+    // Get field keys from schema or fields
+    const fieldKeys: string[] = [];
+    
+    if (step.schema?.properties) {
+      // JSON Schema format - get keys from schema properties
+      fieldKeys.push(...Object.keys(step.schema.properties));
+    } else if (step.fields) {
+      // Legacy fields format - get keys from fields array
+      const extractKeys = (fields: any[]): string[] => {
+        const keys: string[] = [];
+        for (const field of fields) {
+          if (field.key) {
+            keys.push(field.key);
+          }
+          if (field.fieldGroup) {
+            keys.push(...extractKeys(field.fieldGroup));
+          }
+        }
+        return keys;
+      };
+      fieldKeys.push(...extractKeys(step.fields));
+    }
+
+    // Only include values for defined fields
+    for (const key of fieldKeys) {
+      if (this.model.hasOwnProperty(key)) {
+        const value = this.model[key];
+        // Skip undefined, null, or empty values
+        if (value !== undefined && value !== null && value !== '') {
+          formData[key] = value;
+        }
+      }
+    }
+
+    console.log('Form data to save (filtered):', formData);
+    return formData;
+  }
+
+  /**
    * Load next step definition from backend API
    */
   loadNextStep(): void {
     this.saveCurrentStepData();
 
+    const instance = this.currentInstance();
     const workflow = this.selectedWorkflow();
     const currentIndex = this.currentStepIndex();
     
-    if (workflow && currentIndex < workflow.steps.length - 1) {
+    if (!workflow || !instance) return;
+
+    const currentStep = this.currentStep();
+    if (!currentStep) return;
+
+    // Get next step info
+    const nextIndex = currentIndex + 1;
+    if (nextIndex >= workflow.steps.length) return;
+
+    const nextStepDef = workflow.steps[nextIndex];
+    const nextStepId = nextStepDef.stepId || nextStepDef.stepRef?.split('/').pop() || '';
+
+    // Get only the actual form data (not dropdown options, etc.)
+    const formDataToSave = this.getFormDataForSave();
+
+    // Save current step data and advance to next step via API
+    if (Object.keys(formDataToSave).length > 0) {
+      this.loading.set(true);
+      this.workflowService.advanceToNextStep(instance.id, {
+        currentStepId: currentStep.stepId,
+        nextStepId: nextStepId,
+        formData: formDataToSave,  // Use filtered form data
+        submittedBy: 'user@example.com' // TODO: Replace with actual user
+      }).subscribe({
+        next: (updatedInstance: WorkflowInstance) => {
+          console.log('Advanced to next step, instance updated:', updatedInstance);
+          this.currentInstance.set(updatedInstance);
+          this.proceedToNextStep(workflow, currentIndex);
+        },
+        error: (err: any) => {
+          console.error('Error advancing to next step:', err);
+          this.error.set('Failed to save step data');
+          this.loading.set(false);
+        }
+      });
+    } else {
+      this.proceedToNextStep(workflow, currentIndex);
+    }
+  }
+
+  private proceedToNextStep(workflow: WorkflowDefinition, currentIndex: number): void {
+    if (currentIndex < workflow.steps.length - 1) {
       const nextIndex = currentIndex + 1;
       const nextStepDef = workflow.steps[nextIndex];
       
@@ -421,7 +556,7 @@ export class WorkflowSelectorComponent implements OnInit {
         
         this.http.get<StepDefinition>(`${this.apiUrl}/steps/${encodeURIComponent(nextStepDef.stepRef)}`).subscribe({
           next: async (stepDef: StepDefinition) => {
-            await this.setCurrentStep(stepDef);
+            await this.setCurrentStep(stepDef, false); // Don't load from history when going forward
             this.loading.set(false);
           },
           error: (err: any) => {
@@ -435,7 +570,10 @@ export class WorkflowSelectorComponent implements OnInit {
         this.currentStepIndex.set(nextIndex);
         this.fields.set([]);
         console.log('Workflow completed. All form data:', this.stepFormData);
+        this.loading.set(false);
       }
+    } else {
+      this.loading.set(false);
     }
   }
 
@@ -445,36 +583,52 @@ export class WorkflowSelectorComponent implements OnInit {
   loadPreviousStep(): void {
     this.saveCurrentStepData();
 
+    const instance = this.currentInstance();
     const workflow = this.selectedWorkflow();
     const currentIndex = this.currentStepIndex();
     
-    if (workflow && currentIndex > 0) {
-      const prevIndex = currentIndex - 1;
-      const prevStepDef = workflow.steps[prevIndex];
-      
-      if (prevStepDef.stepRef) {
-        this.loading.set(true);
-        this.currentStepIndex.set(prevIndex);
+    if (!workflow || !instance || currentIndex <= 0) return;
+
+    const prevIndex = currentIndex - 1;
+    const prevStepDef = workflow.steps[prevIndex];
+    const prevStepId = prevStepDef.stepId || prevStepDef.stepRef?.split('/').pop() || '';
+
+    // Update instance to go back via API
+    this.loading.set(true);
+    this.workflowService.goToPreviousStep(instance.id, prevStepId).subscribe({
+      next: (updatedInstance: WorkflowInstance) => {
+        console.log('Went back to previous step, instance updated:', updatedInstance);
+        this.currentInstance.set(updatedInstance);
         
-        this.http.get<StepDefinition>(`${this.apiUrl}/steps/${encodeURIComponent(prevStepDef.stepRef)}`).subscribe({
-          next: async (stepDef: StepDefinition) => {
-            await this.setCurrentStep(stepDef);
-            this.loading.set(false);
-          },
-          error: (err: any) => {
-            console.error('Error loading step definition from API:', err);
-            this.error.set('Failed to load step definition');
-            this.loading.set(false);
-          }
-        });
+        if (prevStepDef.stepRef) {
+          this.currentStepIndex.set(prevIndex);
+          
+          this.http.get<StepDefinition>(`${this.apiUrl}/steps/${encodeURIComponent(prevStepDef.stepRef)}`).subscribe({
+            next: async (stepDef: StepDefinition) => {
+              await this.setCurrentStep(stepDef, true); // Load from history when going back
+              this.loading.set(false);
+            },
+            error: (err: any) => {
+              console.error('Error loading step definition from API:', err);
+              this.error.set('Failed to load step definition');
+              this.loading.set(false);
+            }
+          });
+        }
+      },
+      error: (err: any) => {
+        console.error('Error going back to previous step:', err);
+        this.error.set('Failed to go back');
+        this.loading.set(false);
       }
-    }
+    });
   }
 
   backToWorkflowList(): void {
     this.selectedWorkflow.set(null);
     this.currentStep.set(null);
     this.currentStepIndex.set(0);
+    this.currentInstance.set(null);
     this.error.set(null);
     this.model = {};
     this.fields.set([]);
@@ -513,8 +667,8 @@ export class WorkflowSelectorComponent implements OnInit {
     }
     
     // Basic validation - check required fields that are visible
-    const requiredFields = this.fields().filter(f => f.templateOptions?.required);
-    return requiredFields.every(f => {
+    const requiredFields = this.fields().filter((f: FormFieldDefinition) => f.templateOptions?.required);
+    return requiredFields.every((f: FormFieldDefinition) => {
       const value = this.model[f.key];
       return value !== undefined && value !== null && value !== '';
     });

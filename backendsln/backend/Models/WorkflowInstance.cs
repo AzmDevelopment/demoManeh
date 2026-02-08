@@ -66,3 +66,21 @@ public class WorkflowInstanceCreateRequest
     public int Priority { get; set; } = 3;
     public string? Tags { get; set; }
 }
+
+public class SaveDraftDataRequest
+{
+    public Dictionary<string, object> FormData { get; set; } = new();
+}
+
+public class AdvanceStepRequest
+{
+    public string CurrentStepId { get; set; } = string.Empty;
+    public string NextStepId { get; set; } = string.Empty;
+    public Dictionary<string, object> FormData { get; set; } = new();
+    public string SubmittedBy { get; set; } = string.Empty;
+}
+
+public class GoBackRequest
+{
+    public string PreviousStepId { get; set; } = string.Empty;
+}
