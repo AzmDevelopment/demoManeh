@@ -4,6 +4,7 @@ import { HttpClient } from '@angular/common/http';
 // Import hooks directly
 import * as saso_test_step1_types_hooks from '../components/workflow-code/definition/SASO301_Cooker/saso_test_step1_types';
 import * as saso_test_step2_brands_hooks from '../components/workflow-code/definition/SASO301_Cooker/saso_test_step2_brands';
+import * as saso_test_step3_products_hooks from '../components/workflow-code/definition/SASO301_Cooker/saso_test_step3_products';
 
 /**
  * Service for managing and executing workflow step hooks
@@ -17,7 +18,8 @@ export class WorkflowHooksService {
   // Static registry of all hooks - add new hooks here
   private static readonly HOOKS_REGISTRY: { [key: string]: any } = {
     'SASO301_Cooker/saso_test_step1_types': saso_test_step1_types_hooks.hooks,
-    'SASO301_Cooker/saso_test_step2_brands': saso_test_step2_brands_hooks.hooks
+    'SASO301_Cooker/saso_test_step2_brands': saso_test_step2_brands_hooks.hooks,
+    'SASO301_Cooker/saso_test_step3_products': saso_test_step3_products_hooks.hooks
   };
 
   constructor(private http: HttpClient) {
