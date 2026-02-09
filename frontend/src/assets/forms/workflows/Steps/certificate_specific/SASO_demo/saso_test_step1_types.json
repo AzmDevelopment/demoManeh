@@ -7,17 +7,41 @@
   "schema": {
     "type": "object",
     "properties": {
+      "applicantName": {
+        "type": "string",
+        "title": "Applicant Name"
+      },
+      "companyName": {
+        "type": "string",
+        "title": "Company Name"
+      },
       "selectedType": {
         "type": "string",
         "title": "Certification Type"
       }
     },
-    "required": ["selectedType"]
+    "required": [ "applicantName", "companyName", "selectedType" ]
   },
 
   "uischema": {
     "type": "VerticalLayout",
     "elements": [
+      {
+        "type": "Control",
+        "scope": "#/properties/applicantName",
+        "label": "Applicant Name",
+        "options": {
+          "placeholder": "Enter applicant name..."
+        }
+      },
+      {
+        "type": "Control",
+        "scope": "#/properties/companyName",
+        "label": "Company Name",
+        "options": {
+          "placeholder": "Enter company name..."
+        }
+      },
       {
         "type": "Control",
         "scope": "#/properties/selectedType",
@@ -30,7 +54,7 @@
   },
 
   "hooks": {
-    "onInit": ["loadTypes"],
+    "onInit": [ "loadTypes" ],
     "onChange": {
       "selectedType": "onTypeSelected"
     }
@@ -38,18 +62,27 @@
 
   "stateMachine": {
     "initialStatus": "not_started",
-    "allowedEvents": ["Enter", "Save", "Submit", "GoBack"],
+    "allowedEvents": [ "Enter", "Save", "Submit", "GoBack" ],
     "transitions": {
-      "onEnter": { "from": "not_started", "to": "active" },
-      "onSave": { "from": ["active", "in_progress"], "to": "in_progress" },
-      "onSubmit": { "from": ["active", "in_progress"], "to": "completed" }
+      "onEnter": {
+        "from": "not_started",
+        "to": "active"
+      },
+      "onSave": {
+        "from": [ "active", "in_progress" ],
+        "to": "in_progress"
+      },
+      "onSubmit": {
+        "from": [ "active", "in_progress" ],
+        "to": "completed"
+      }
     },
-    "requiredForSubmit": ["selectedType"],
+    "requiredForSubmit": [ "applicantName", "companyName", "selectedType" ],
     "canGoBack": false
   },
 
   "context": {
-    "provides": ["selectedType", "selectedTypeValue", "selectedTypeLabel"],
+    "provides": [ "applicantName", "companyName", "selectedType", "selectedTypeValue", "selectedTypeLabel" ],
     "requires": []
   },
 
