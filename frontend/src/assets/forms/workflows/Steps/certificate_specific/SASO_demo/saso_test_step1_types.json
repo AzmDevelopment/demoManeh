@@ -49,7 +49,7 @@
   },
 
   "context": {
-    "provides": ["selectedTypeValue", "selectedTypeLabel"],
+    "provides": ["selectedType", "selectedTypeValue", "selectedTypeLabel"],
     "requires": []
   },
 

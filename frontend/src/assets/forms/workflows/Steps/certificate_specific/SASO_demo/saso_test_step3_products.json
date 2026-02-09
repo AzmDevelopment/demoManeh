@@ -216,7 +216,7 @@
 
   "context": {
     "provides": ["productTable"],
-    "requires": ["selectedTypeValue", "brandTable"],
+    "requires": ["selectedType", "selectedTypeValue", "selectedTypeLabel", "brandTable"],
     "filters": {
       "existingProduct": {
         "filterBy": "selectedTypeValue",

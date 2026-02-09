@@ -13,6 +13,7 @@ public class WorkflowDbContext : DbContext
 
     public DbSet<WorkflowInstanceEntity> WorkflowInstances { get; set; } = null!;
     public DbSet<StepHistoryDetailEntity> StepHistoryDetails { get; set; } = null!;
+    public DbSet<TransitionAuditEntity> TransitionAudits { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -126,6 +127,64 @@ public class WorkflowDbContext : DbContext
 
             entity.HasIndex(e => e.CompletedAt)
                 .HasDatabaseName("IX_StepHistory_CompletedAt");
+        });
+
+        // Configure TransitionAuditEntity
+        modelBuilder.Entity<TransitionAuditEntity>(entity =>
+        {
+            entity.ToTable("TransitionAudits");
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.StepId)
+                .HasMaxLength(100);
+
+            entity.Property(e => e.TransitionType)
+                .IsRequired()
+                .HasMaxLength(20);
+
+            entity.Property(e => e.FromState)
+                .IsRequired()
+                .HasMaxLength(50);
+
+            entity.Property(e => e.ToState)
+                .IsRequired()
+                .HasMaxLength(50);
+
+            entity.Property(e => e.Event)
+                .IsRequired()
+                .HasMaxLength(50);
+
+            entity.Property(e => e.TriggeredBy)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(e => e.TriggeredByRole)
+                .HasMaxLength(50);
+
+            entity.Property(e => e.Comments)
+                .HasColumnType("nvarchar(max)");
+
+            entity.Property(e => e.DataSnapshotJson)
+                .HasColumnType("nvarchar(max)");
+
+            // Foreign key to WorkflowInstance
+            entity.HasOne<WorkflowInstanceEntity>()
+                .WithMany()
+                .HasForeignKey(e => e.WorkflowInstanceId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Indexes for common queries
+            entity.HasIndex(e => e.WorkflowInstanceId)
+                .HasDatabaseName("IX_TransitionAudits_WorkflowInstanceId");
+
+            entity.HasIndex(e => new { e.WorkflowInstanceId, e.StepId })
+                .HasDatabaseName("IX_TransitionAudits_Workflow_Step");
+
+            entity.HasIndex(e => e.Timestamp)
+                .HasDatabaseName("IX_TransitionAudits_Timestamp");
+
+            entity.HasIndex(e => e.TriggeredBy)
+                .HasDatabaseName("IX_TransitionAudits_TriggeredBy");
         });
     }
 }

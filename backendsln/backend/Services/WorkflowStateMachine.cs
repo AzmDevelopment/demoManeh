@@ -1,5 +1,6 @@
 using backend.Models;
-using System.Collections.Concurrent;
+using backend.Data;
+using System.Text.Json;
 
 namespace backend.Services;
 
@@ -10,10 +11,8 @@ namespace backend.Services;
 public class WorkflowStateMachine : IWorkflowStateMachine
 {
     private readonly IWorkflowRepository _repository;
+    private readonly WorkflowDbContext _dbContext;
     private readonly ILogger<WorkflowStateMachine> _logger;
-    
-    // Thread-safe audit storage (replace with database table in production)
-    private static readonly ConcurrentBag<TransitionAuditRecord> _auditRecords = new();
 
     #region Workflow Transitions Definition
     
@@ -194,9 +193,11 @@ public class WorkflowStateMachine : IWorkflowStateMachine
 
     public WorkflowStateMachine(
         IWorkflowRepository repository,
+        WorkflowDbContext dbContext,
         ILogger<WorkflowStateMachine> logger)
     {
         _repository = repository;
+        _dbContext = dbContext;
         _logger = logger;
     }
 
@@ -253,8 +254,8 @@ public class WorkflowStateMachine : IWorkflowStateMachine
         // Save changes
         await _repository.SaveWorkflowInstanceAsync(instance);
 
-        // Create audit record
-        var auditRecord = new TransitionAuditRecord
+        // Save audit record to database
+        await SaveAuditRecordAsync(new TransitionAuditEntity
         {
             WorkflowInstanceId = instance.Id,
             TransitionType = "workflow",
@@ -263,9 +264,9 @@ public class WorkflowStateMachine : IWorkflowStateMachine
             Event = eventName,
             TriggeredBy = triggeredBy,
             TriggeredByRole = triggeredByRole,
+            Timestamp = DateTime.UtcNow,
             Comments = comments
-        };
-        _auditRecords.Add(auditRecord);
+        });
 
         _logger.LogInformation(
             "Workflow transition successful: {InstanceId} [{PreviousState}] --{Event}--> [{NewState}]",
@@ -385,8 +386,8 @@ public class WorkflowStateMachine : IWorkflowStateMachine
         // Save changes
         await _repository.SaveWorkflowInstanceAsync(instance);
 
-        // Create audit record
-        var auditRecord = new TransitionAuditRecord
+        // Save audit record to database
+        await SaveAuditRecordAsync(new TransitionAuditEntity
         {
             WorkflowInstanceId = instance.Id,
             StepId = stepId,
@@ -396,9 +397,9 @@ public class WorkflowStateMachine : IWorkflowStateMachine
             Event = eventName,
             TriggeredBy = triggeredBy,
             TriggeredByRole = triggeredByRole,
-            Metadata = formData
-        };
-        _auditRecords.Add(auditRecord);
+            Timestamp = DateTime.UtcNow,
+            DataSnapshotJson = formData != null ? JsonSerializer.Serialize(formData) : null
+        });
 
         _logger.LogInformation(
             "Step transition successful: {InstanceId}/{StepId} [{PreviousStatus}] --{Event}--> [{NewStatus}]",
@@ -491,6 +492,21 @@ public class WorkflowStateMachine : IWorkflowStateMachine
         return null;
     }
 
+    private async Task SaveAuditRecordAsync(TransitionAuditEntity auditEntity)
+    {
+        try
+        {
+            _dbContext.TransitionAudits.Add(auditEntity);
+            await _dbContext.SaveChangesAsync();
+            _logger.LogDebug("Saved transition audit record for workflow {WorkflowId}", auditEntity.WorkflowInstanceId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to save transition audit record for workflow {WorkflowId}", auditEntity.WorkflowInstanceId);
+            // Don't throw - audit failure shouldn't block the transition
+        }
+    }
+
     #endregion
 
     #region Status Info & Audit
@@ -514,14 +530,28 @@ public class WorkflowStateMachine : IWorkflowStateMachine
         };
     }
 
-    public Task<List<TransitionAuditRecord>> GetTransitionHistoryAsync(Guid instanceId)
+    public async Task<List<TransitionAuditRecord>> GetTransitionHistoryAsync(Guid instanceId)
     {
-        var records = _auditRecords
-            .Where(r => r.WorkflowInstanceId == instanceId)
-            .OrderByDescending(r => r.Timestamp)
-            .ToList();
+        var records = await Task.Run(() => 
+            _dbContext.TransitionAudits
+                .Where(r => r.WorkflowInstanceId == instanceId)
+                .OrderByDescending(r => r.Timestamp)
+                .Select(e => new TransitionAuditRecord
+                {
+                    WorkflowInstanceId = e.WorkflowInstanceId,
+                    StepId = e.StepId,
+                    TransitionType = e.TransitionType,
+                    FromState = e.FromState,
+                    ToState = e.ToState,
+                    Event = e.Event,
+                    TriggeredBy = e.TriggeredBy,
+                    TriggeredByRole = e.TriggeredByRole,
+                    Timestamp = e.Timestamp,
+                    Comments = e.Comments
+                })
+                .ToList());
 
-        return Task.FromResult(records);
+        return records;
     }
 
     #endregion

@@ -69,10 +69,85 @@ export async function loadTypes(
   }
 }
 
+/**
+ * Handle type selection change
+ * Stores both the value and label in the model for context passing
+ *
+ * Hook: onChange for selectedType field
+ */
+export function onTypeSelected(field: any, model: any): void {
+  console.log('=== onTypeSelected START ===');
+  console.log('onTypeSelected: model.selectedType:', model.selectedType);
+  console.log('onTypeSelected: model._typesData:', model._typesData);
+
+  const selectedTypeLabel = model.selectedType;
+  if (!selectedTypeLabel) {
+    console.log('onTypeSelected: No type selected, clearing context values');
+    model.selectedTypeValue = '';
+    model.selectedTypeLabel = '';
+    return;
+  }
+
+  // Get the full type data from stored types
+  const typesData = model._typesData || [];
+  console.log('onTypeSelected: Looking for type with label:', selectedTypeLabel);
+  
+  const typeOption = typesData.find((type: CertificationType) => type.label === selectedTypeLabel);
+  console.log('onTypeSelected: Found type option:', typeOption);
+
+  if (typeOption) {
+    // Store both the value (code) and label for context passing
+    model.selectedTypeValue = typeOption.value;
+    model.selectedTypeLabel = typeOption.label;
+    
+    console.log('onTypeSelected: ✅ Set selectedTypeValue:', model.selectedTypeValue);
+    console.log('onTypeSelected: ✅ Set selectedTypeLabel:', model.selectedTypeLabel);
+  } else {
+    // If no match found in _typesData, extract the code from the label
+    // Label format is typically "CODE - Description" (e.g., "QML - Quality Management License")
+    const extractedCode = extractTypeCodeFromLabel(selectedTypeLabel);
+    
+    model.selectedTypeValue = extractedCode;
+    model.selectedTypeLabel = selectedTypeLabel;
+    
+    console.log('onTypeSelected: ⚠️ Type not found in _typesData, extracted code:', extractedCode);
+    console.log('onTypeSelected: ✅ Set selectedTypeValue:', model.selectedTypeValue);
+    console.log('onTypeSelected: ✅ Set selectedTypeLabel:', model.selectedTypeLabel);
+  }
+  
+  console.log('=== onTypeSelected END ===');
+  console.log('onTypeSelected: Final model state:', {
+    selectedType: model.selectedType,
+    selectedTypeValue: model.selectedTypeValue,
+    selectedTypeLabel: model.selectedTypeLabel
+  });
+}
+
+/**
+ * Extract the type code from a label like "QML - Quality Management License"
+ */
+function extractTypeCodeFromLabel(label: string): string {
+  if (!label) return '';
+  
+  // If it contains " - ", extract the first part (the code)
+  if (label.includes(' - ')) {
+    return label.split(' - ')[0].trim();
+  }
+  
+  // If it contains " (", extract the part before it
+  if (label.includes(' (')) {
+    return label.split(' (')[0].trim();
+  }
+  
+  // Otherwise, return as-is
+  return label.trim();
+}
+
 export const STEP_ID = 'saso_test_step1_types';
 
 export const hooks = {
-  loadTypes
+  loadTypes,
+  onTypeSelected
 };
 
 export default {

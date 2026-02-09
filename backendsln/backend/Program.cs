@@ -2,6 +2,7 @@ using backend.Services;
 using backend.Validation;
 using backend.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -58,7 +59,9 @@ builder.Services.AddDbContext<WorkflowDbContext>(options =>
                 maxRetryCount: 5,
                 maxRetryDelay: TimeSpan.FromSeconds(30),
                 errorNumbersToAdd: null);
-        }));
+        })
+    .ConfigureWarnings(warnings =>
+        warnings.Ignore(RelationalEventId.PendingModelChangesWarning)));
 
 // Register Workflow Services
 builder.Services.AddSingleton<IWorkflowDefinitionProvider, FileSystemWorkflowDefinitionProvider>();

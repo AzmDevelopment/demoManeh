@@ -170,27 +170,110 @@ export class WorkflowSelectorComponent implements OnInit {
   }
 
   private async setCurrentStep(stepDef: StepDefinition, loadFromHistory = false): Promise<void> {
+    console.log('=== setCurrentStep START ===');
+    console.log('setCurrentStep: stepId:', stepDef.stepId);
+    console.log('setCurrentStep: loadFromHistory:', loadFromHistory);
+    console.log('setCurrentStep: stepFormData BEFORE:', JSON.stringify(this.stepFormData, null, 2));
+    
     this.currentStep.set(stepDef);
+    
+    // Load model data
     if (loadFromHistory) {
       const instance = this.currentInstance();
-      if (instance) { try { const h = await this.workflowService.getStepHistory(instance.id, stepDef.stepId).toPromise(); if (h?.dataSnapshot) { this.model = { ...h.dataSnapshot }; this.stepFormData[stepDef.stepId] = { ...h.dataSnapshot }; } else { this.model = this.stepFormData[stepDef.stepId] || {}; } } catch { this.model = this.stepFormData[stepDef.stepId] || {}; } }
-      else { this.model = this.stepFormData[stepDef.stepId] || {}; }
-    } else { this.model = this.stepFormData[stepDef.stepId] || {}; }
+      if (instance) { 
+        try { 
+          const h = await this.workflowService.getStepHistory(instance.id, stepDef.stepId).toPromise(); 
+          if (h?.dataSnapshot) { 
+            this.model = { ...h.dataSnapshot }; 
+            this.stepFormData[stepDef.stepId] = { ...h.dataSnapshot }; 
+          } else { 
+            this.model = this.stepFormData[stepDef.stepId] || {}; 
+          } 
+        } catch { 
+          this.model = this.stepFormData[stepDef.stepId] || {}; 
+        } 
+      } else { 
+        this.model = this.stepFormData[stepDef.stepId] || {}; 
+      }
+    } else { 
+      this.model = this.stepFormData[stepDef.stepId] || {}; 
+    }
+    
+    console.log('setCurrentStep: model AFTER loading:', JSON.stringify(this.model, null, 2));
+    
+    // IMPORTANT: Load context from previous steps AFTER model is initialized
+    // This populates model._selectedValues with data from previous steps
     this.loadContextFromPreviousSteps(stepDef);
-    if (stepDef.schema) { if (stepDef.hooks?.onInit?.length) { this.schema.set(null); this.uischema.set(null); this.fields.set([]); await this.loadAndExecuteHooks(stepDef); } this.schema.set(stepDef.schema); this.uischema.set(stepDef.uischema || null); this.fields.set([]); }
-    else if (stepDef.fields) { this.schema.set(null); this.uischema.set(null); this.fields.set([...this.convertFields(stepDef.fields)]); await this.loadAndExecuteHooks(stepDef); }
+    
+    console.log('setCurrentStep: model AFTER context loading:', JSON.stringify(this.model, null, 2));
+    console.log('setCurrentStep: model._selectedValues:', this.model['_selectedValues']);
+    
+    // Now execute hooks (they can access model._selectedValues)
+    if (stepDef.schema) { 
+      if (stepDef.hooks?.onInit?.length) { 
+        this.schema.set(null); 
+        this.uischema.set(null); 
+        this.fields.set([]); 
+        await this.loadAndExecuteHooks(stepDef); 
+      } 
+      this.schema.set(stepDef.schema); 
+      this.uischema.set(stepDef.uischema || null); 
+      this.fields.set([]); 
+    } else if (stepDef.fields) { 
+      this.schema.set(null); 
+      this.uischema.set(null); 
+      this.fields.set([...this.convertFields(stepDef.fields)]); 
+      await this.loadAndExecuteHooks(stepDef); 
+    }
+    
     this.cdr.detectChanges();
+    console.log('=== setCurrentStep END ===');
   }
 
   private loadContextFromPreviousSteps(stepDef: StepDefinition): void {
-    if (!stepDef.context?.requires?.length) return;
-    if (!this.model['_selectedValues']) this.model['_selectedValues'] = {};
+    console.log('=== loadContextFromPreviousSteps START ===');
+    console.log('loadContextFromPreviousSteps: Step requires context:', stepDef.context?.requires);
+    console.log('loadContextFromPreviousSteps: Available stepFormData keys:', Object.keys(this.stepFormData));
+    
+    if (!stepDef.context?.requires?.length) {
+      console.log('loadContextFromPreviousSteps: No context requirements, skipping');
+      return;
+    }
+    
+    // Initialize _selectedValues if not exists
+    if (!this.model['_selectedValues']) {
+      this.model['_selectedValues'] = {};
+    }
+    
+    // Log all step data for debugging
+    for (const [stepId, data] of Object.entries(this.stepFormData)) {
+      console.log(`loadContextFromPreviousSteps: Step '${stepId}' data:`, data);
+    }
+    
+    // Search for required context values in previous steps
     for (const key of stepDef.context.requires) {
-      for (const [, data] of Object.entries(this.stepFormData)) {
-        if (data[key] !== undefined) this.model['_selectedValues'][key] = data[key];
-        if (data['_selectedValues']?.[key] !== undefined) this.model['_selectedValues'][key] = data['_selectedValues'][key];
+      console.log(`loadContextFromPreviousSteps: Looking for key '${key}'...`);
+      
+      for (const [stepId, data] of Object.entries(this.stepFormData)) {
+        // Check direct model data (e.g., selectedType, selectedTypeValue stored directly)
+        if (data[key] !== undefined) {
+          this.model['_selectedValues'][key] = data[key];
+          console.log(`  ✅ Found '${key}' directly in step '${stepId}':`, data[key]);
+        }
+        // Check _selectedValues in previous step
+        if (data['_selectedValues']?.[key] !== undefined) {
+          this.model['_selectedValues'][key] = data['_selectedValues'][key];
+          console.log(`  ✅ Found '${key}' in _selectedValues of step '${stepId}':`, data['_selectedValues'][key]);
+        }
+      }
+      
+      if (this.model['_selectedValues'][key] === undefined) {
+        console.log(`  ❌ Key '${key}' NOT FOUND in any previous step`);
       }
     }
+    
+    console.log('loadContextFromPreviousSteps: Final model._selectedValues:', this.model['_selectedValues']);
+    console.log('=== loadContextFromPreviousSteps END ===');
   }
 
   private convertFields(jsonFields: any[]): FormFieldDefinition[] {
@@ -220,23 +303,131 @@ export class WorkflowSelectorComponent implements OnInit {
   }
 
   onModelChange(newModel: Record<string, any>): void {
-    const changed = Object.keys(newModel).filter(k => this.model[k] !== newModel[k]);
+    console.log('=== onModelChange ===');
+    console.log('onModelChange: Previous model keys:', Object.keys(this.model));
+    console.log('onModelChange: New model keys:', Object.keys(newModel));
+    
+    // Preserve hook-set values that aren't in the form schema
+    // These include: selectedTypeValue, selectedTypeLabel, _typesData, _brandsData, etc.
+    const preservedKeys = ['selectedType', 'selectedTypeValue', 'selectedTypeLabel', 
+                           '_typesData', '_brandsData', '_productsData', '_sectorsData', 
+                           '_classificationsData', '_selectedValues', 'brandTable'];
+    
+    for (const key of preservedKeys) {
+      if (this.model[key] !== undefined && newModel[key] === undefined) {
+        newModel[key] = this.model[key];
+        console.log(`onModelChange: Preserved '${key}' from previous model:`, this.model[key]);
+      }
+    }
+    
+    // Detect which fields actually changed
+    const changed = Object.keys(newModel).filter(k => {
+      const oldVal = JSON.stringify(this.model[k]);
+      const newVal = JSON.stringify(newModel[k]);
+      return oldVal !== newVal;
+    });
+    
+    // Update the model
     this.model = newModel;
+    
+    console.log('onModelChange: Changed fields:', changed);
+    
+    // Execute onChange hooks for changed fields
     const step = this.currentStep();
     if (step?.hooks?.onChange && this.stepHooks && changed.length) {
-      for (const k of changed) { const h = step.hooks.onChange[k]; if (h && this.stepHooks[h]) { this.stepHooks[h]({ schema: step.schema, uischema: step.uischema, context: step.context }, this.model, {}, this.http); this.cdr.detectChanges(); } }
+      for (const k of changed) { 
+        const h = step.hooks.onChange[k]; 
+        if (h && this.stepHooks[h]) { 
+          console.log(`onModelChange: Executing onChange hook '${h}' for field '${k}'`);
+          this.stepHooks[h]({ schema: step.schema, uischema: step.uischema, context: step.context }, this.model, {}, this.http); 
+          
+          // After hook execution, log the model to see what was set
+          console.log(`onModelChange: Model after hook '${h}':`, JSON.stringify({
+            selectedType: this.model['selectedType'],
+            selectedTypeValue: this.model['selectedTypeValue'],
+            selectedTypeLabel: this.model['selectedTypeLabel']
+          }));
+          
+          this.cdr.detectChanges(); 
+        } 
+      }
     }
+    
+    console.log('onModelChange: Final model keys:', Object.keys(this.model));
   }
 
-  private saveCurrentStepData(): void { const s = this.currentStep(); if (s) this.stepFormData[s.stepId] = { ...this.model }; }
+  private saveCurrentStepData(): void { 
+    const s = this.currentStep(); 
+    if (s) {
+      console.log('=== saveCurrentStepData ===');
+      console.log('saveCurrentStepData: Saving data for step:', s.stepId);
+      console.log('saveCurrentStepData: Current model keys:', Object.keys(this.model));
+      console.log('saveCurrentStepData: Context provides:', s.context?.provides);
+      
+      // Create a copy of all model data
+      const dataToSave: Record<string, any> = { ...this.model };
+      
+      // Ensure all context-provided values are included
+      if (s.context?.provides) {
+        for (const key of s.context.provides) {
+          if (this.model[key] !== undefined) {
+            dataToSave[key] = this.model[key];
+            console.log(`saveCurrentStepData: Including context value '${key}':`, this.model[key]);
+          } else {
+            console.log(`saveCurrentStepData: Context value '${key}' is undefined in model`);
+          }
+        }
+      }
+      
+      // Save to stepFormData
+      this.stepFormData[s.stepId] = dataToSave;
+      
+      console.log('saveCurrentStepData: Saved stepFormData keys:', Object.keys(this.stepFormData[s.stepId]));
+      console.log('saveCurrentStepData: Saved stepFormData:', JSON.stringify(this.stepFormData[s.stepId], null, 2));
+    }
+  }
 
   private getFormDataForSave(): Record<string, any> {
     const step = this.currentStep();
     if (!step) return {};
+    
     const formData: Record<string, any> = {};
-    const keys: string[] = step.schema?.properties ? Object.keys(step.schema.properties) : step.fields ? this.extractKeys(step.fields) : [];
-    for (const k of keys) { if (this.model.hasOwnProperty(k) && this.model[k] !== undefined && this.model[k] !== null && this.model[k] !== '') formData[k] = this.model[k]; }
-    if (this.model['_selectedValues']) formData['_selectedValues'] = this.model['_selectedValues'];
+    const schemaKeys: string[] = step.schema?.properties ? Object.keys(step.schema.properties) : [];
+    const fieldKeys: string[] = step.fields ? this.extractKeys(step.fields) : [];
+    const keys = [...new Set([...schemaKeys, ...fieldKeys])];
+    
+    console.log('=== getFormDataForSave ===');
+    console.log('getFormDataForSave: Schema keys:', schemaKeys);
+    console.log('getFormDataForSave: Context provides:', step.context?.provides);
+    console.log('getFormDataForSave: Current model keys:', Object.keys(this.model));
+    
+    // Save form field values from schema
+    for (const k of keys) { 
+      if (this.model.hasOwnProperty(k) && this.model[k] !== undefined && this.model[k] !== null && this.model[k] !== '') {
+        formData[k] = this.model[k]; 
+      }
+    }
+    
+    // IMPORTANT: Also save context values that this step provides
+    // These are values set by hooks (like selectedTypeValue, selectedTypeLabel)
+    if (step.context?.provides) {
+      for (const provideKey of step.context.provides) {
+        if (this.model[provideKey] !== undefined) {
+          formData[provideKey] = this.model[provideKey];
+          console.log(`getFormDataForSave: Including context value '${provideKey}':`, this.model[provideKey]);
+        } else {
+          console.log(`getFormDataForSave: Context value '${provideKey}' is NOT in model`);
+        }
+      }
+    }
+    
+    // Save _selectedValues for nested context data
+    if (this.model['_selectedValues']) {
+      formData['_selectedValues'] = this.model['_selectedValues'];
+    }
+    
+    console.log('getFormDataForSave: Final formData:', JSON.stringify(formData, null, 2));
+    
     return formData;
   }
 
@@ -247,34 +438,107 @@ export class WorkflowSelectorComponent implements OnInit {
   }
 
   async loadNextStep(): Promise<void> {
+    console.log('=== loadNextStep START ===');
+    
+    // IMPORTANT: Save current step data FIRST before doing anything else
     this.saveCurrentStepData();
-    const instance = this.currentInstance(), workflow = this.selectedWorkflow(), idx = this.currentStepIndex(), step = this.currentStep();
-    if (!workflow || !instance || !step) return;
+    
+    console.log('loadNextStep: stepFormData after save:', JSON.stringify(this.stepFormData, null, 2));
+    
+    const instance = this.currentInstance();
+    const workflow = this.selectedWorkflow();
+    const idx = this.currentStepIndex();
+    const step = this.currentStep();
+    
+    if (!workflow || !instance || !step) {
+      console.log('loadNextStep: Missing workflow, instance, or step');
+      return;
+    }
+    
     await this.triggerStepTransition('Submit' as StepEvent);
+    
     const nextIdx = idx + 1;
-    if (nextIdx >= workflow.steps.length) return;
-    const nextDef = workflow.steps[nextIdx], nextId = nextDef.stepId || nextDef.stepRef?.split('/').pop() || '';
+    if (nextIdx >= workflow.steps.length) {
+      console.log('loadNextStep: No more steps');
+      return;
+    }
+    
+    const nextDef = workflow.steps[nextIdx];
+    const nextId = nextDef.stepId || nextDef.stepRef?.split('/').pop() || '';
     const data = this.getFormDataForSave();
+    
+    console.log('loadNextStep: Form data to save:', JSON.stringify(data, null, 2));
+    
     if (Object.keys(data).length) {
       this.loading.set(true);
-      this.workflowService.advanceToNextStep(instance.id, { currentStepId: step.stepId, nextStepId: nextId, formData: data, submittedBy: 'user@example.com' }).subscribe({
-        next: (u) => { this.currentInstance.set(u); this.loadWorkflowStatus(u.id); this.proceedToNextStep(workflow, idx); },
-        error: () => { this.error.set('Failed to save step data'); this.loading.set(false); }
+      this.workflowService.advanceToNextStep(instance.id, { 
+        currentStepId: step.stepId, 
+        nextStepId: nextId, 
+        formData: data, 
+        submittedBy: 'user@example.com' 
+      }).subscribe({
+        next: (u) => { 
+          console.log('loadNextStep: Advanced to next step');
+          this.currentInstance.set(u); 
+          this.loadWorkflowStatus(u.id); 
+          this.proceedToNextStep(workflow, idx); 
+        },
+        error: (err) => { 
+          console.error('loadNextStep: Error advancing:', err);
+          this.error.set('Failed to save step data'); 
+          this.loading.set(false); 
+        }
       });
-    } else this.proceedToNextStep(workflow, idx);
+    } else {
+      console.log('loadNextStep: No data to save, proceeding directly');
+      this.proceedToNextStep(workflow, idx);
+    }
   }
 
   private proceedToNextStep(workflow: WorkflowDefinition, idx: number): void {
+    console.log('=== proceedToNextStep START ===');
+    console.log('proceedToNextStep: Current stepFormData:', JSON.stringify(this.stepFormData, null, 2));
+    
     if (idx < workflow.steps.length - 1) {
-      const nextIdx = idx + 1, nextDef = workflow.steps[nextIdx];
+      const nextIdx = idx + 1;
+      const nextDef = workflow.steps[nextIdx];
+      
+      console.log('proceedToNextStep: Loading step index', nextIdx, 'stepRef:', nextDef.stepRef);
+      
       if (nextDef.stepRef) {
-        this.loading.set(true); this.currentStepIndex.set(nextIdx);
+        this.loading.set(true); 
+        this.currentStepIndex.set(nextIdx);
+        
         this.http.get<StepDefinition>(`${this.apiUrl}/steps/${encodeURIComponent(nextDef.stepRef)}`).subscribe({
-          next: async (s) => { await this.setCurrentStep(s, false); const i = this.currentInstance(); if (i) { this.loadStepStatus(i.id, s.stepId); await this.triggerStepTransition('Enter' as StepEvent); } this.loading.set(false); },
-          error: () => { this.error.set('Failed to load step definition'); this.loading.set(false); }
+          next: async (s) => { 
+            console.log('proceedToNextStep: Loaded step definition:', s.stepId);
+            console.log('proceedToNextStep: stepFormData at this point:', JSON.stringify(this.stepFormData, null, 2));
+            
+            await this.setCurrentStep(s, false); 
+            
+            const i = this.currentInstance(); 
+            if (i) { 
+              this.loadStepStatus(i.id, s.stepId); 
+              await this.triggerStepTransition('Enter' as StepEvent); 
+            } 
+            this.loading.set(false); 
+          },
+          error: () => { 
+            this.error.set('Failed to load step definition'); 
+            this.loading.set(false); 
+          }
         });
-      } else if (nextDef.stepId === 'completed') { this.currentStep.set(null); this.currentStepIndex.set(nextIdx); this.fields.set([]); this.loading.set(false); }
-    } else this.loading.set(false);
+      } else if (nextDef.stepId === 'completed') { 
+        this.currentStep.set(null); 
+        this.currentStepIndex.set(nextIdx); 
+        this.fields.set([]); 
+        this.loading.set(false); 
+      }
+    } else {
+      this.loading.set(false);
+    }
+    
+    console.log('=== proceedToNextStep END ===');
   }
 
   async loadPreviousStep(): Promise<void> {
@@ -286,12 +550,12 @@ export class WorkflowSelectorComponent implements OnInit {
     const prevIdx = idx - 1, prevDef = workflow.steps[prevIdx], prevId = prevDef.stepId || prevDef.stepRef?.split('/').pop() || '';
     this.loading.set(true);
     this.workflowService.goToPreviousStep(instance.id, prevId).subscribe({
-      next: (u) => {
+      next: (u: WorkflowInstance) => {
         this.currentInstance.set(u); this.loadWorkflowStatus(u.id);
         if (prevDef.stepRef) {
           this.currentStepIndex.set(prevIdx);
           this.http.get<StepDefinition>(`${this.apiUrl}/steps/${encodeURIComponent(prevDef.stepRef)}`).subscribe({
-            next: async (s) => { await this.setCurrentStep(s, true); this.loadStepStatus(u.id, s.stepId); this.loading.set(false); },
+            next: async (s: StepDefinition) => { await this.setCurrentStep(s, true); this.loadStepStatus(u.id, s.stepId); this.loading.set(false); },
             error: () => { this.error.set('Failed to load step'); this.loading.set(false); }
           });
         }

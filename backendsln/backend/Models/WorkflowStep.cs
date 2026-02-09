@@ -26,9 +26,60 @@ public class WorkflowStep
     // Custom actions (buttons) configuration
     public List<CustomAction>? CustomActions { get; set; }
 
+    // Context configuration for inter-step data passing
+    public StepContext? Context { get; set; }
+
+    // State machine configuration
+    public StepStateMachine? StateMachine { get; set; }
+
     public StepConfiguration StepConfig { get; set; } = new();
     public List<string> Validations { get; set; } = new();
     public List<ValidationMessage>? ValidationMessages { get; set; }
+}
+
+public class StepContext
+{
+    /// <summary>
+    /// Keys that this step provides to subsequent steps
+    /// </summary>
+    public List<string>? Provides { get; set; }
+
+    /// <summary>
+    /// Keys that this step requires from previous steps
+    /// </summary>
+    public List<string>? Requires { get; set; }
+
+    /// <summary>
+    /// Filter configurations for dropdowns based on previous step data
+    /// </summary>
+    public Dictionary<string, StepContextFilter>? Filters { get; set; }
+}
+
+public class StepContextFilter
+{
+    /// <summary>
+    /// The context key to filter by (e.g., "selectedTypeValue")
+    /// </summary>
+    public string? FilterBy { get; set; }
+
+    /// <summary>
+    /// API endpoint to call with the filter value (e.g., "/api/Products/by-type/{value}")
+    /// </summary>
+    public string? ApiEndpoint { get; set; }
+
+    /// <summary>
+    /// The source field in the data to use for filtering
+    /// </summary>
+    public string? SourceField { get; set; }
+}
+
+public class StepStateMachine
+{
+    public string? InitialStatus { get; set; }
+    public List<string>? AllowedEvents { get; set; }
+    public Dictionary<string, object>? Transitions { get; set; }
+    public List<string>? RequiredForSubmit { get; set; }
+    public bool CanGoBack { get; set; }
 }
 
 public class FormField
@@ -94,6 +145,9 @@ public class StepConfiguration
     public bool CanSendBack { get; set; }
     public int EstimatedDurationHours { get; set; }
     public string? NextStep { get; set; }
+    public string? PreviousStep { get; set; }
+    public bool? IsFirstStep { get; set; }
+    public bool? IsLastStep { get; set; }
     public bool IsMandatory { get; set; }
     public Dictionary<string, object>? Validation { get; set; }
 }

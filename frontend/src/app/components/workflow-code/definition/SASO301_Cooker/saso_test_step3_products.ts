@@ -4,7 +4,7 @@ import { HttpClient } from '@angular/common/http';
  * Step hooks for: saso_test_step3_products
  * 
  * This file contains hooks for the Product Management step.
- * Products are loaded from the backend API.
+ * Products are loaded from the backend API and filtered by the selected type from step 1.
  */
 
 /**
@@ -55,7 +55,8 @@ export interface Classification {
 }
 
 /**
- * Load all products from API and populate the existingProduct dropdown
+ * Load products from API filtered by the selected type from step 1
+ * The selected type is available in model._selectedValues.selectedTypeValue
  *
  * Hook: onInit
  * Called when the step loads
@@ -67,12 +68,50 @@ export async function loadProducts(
   http: HttpClient
 ): Promise<void> {
   try {
-    console.log('loadProducts: Starting to fetch products from API...');
+    console.log('=== loadProducts START ===');
+    console.log('loadProducts: model._selectedValues:', model._selectedValues);
+    console.log('loadProducts: Full model keys:', Object.keys(model));
 
-    const apiUrl = '/api/Products';
-    const products = await http.get<Product[]>(apiUrl).toPromise();
+    // Get the selected type from context (passed from step 1)
+    // Try multiple sources for the type value
+    let selectedTypeValue = model._selectedValues?.selectedTypeValue;
+    let selectedTypeLabel = model._selectedValues?.selectedTypeLabel;
+    
+    // Also check if selectedType is directly in _selectedValues (the raw dropdown value)
+    const selectedTypeRaw = model._selectedValues?.selectedType;
+    
+    console.log('loadProducts: selectedTypeValue:', selectedTypeValue);
+    console.log('loadProducts: selectedTypeLabel:', selectedTypeLabel);
+    console.log('loadProducts: selectedTypeRaw:', selectedTypeRaw);
 
-    console.log('loadProducts: Received products from API:', products);
+    let apiUrl = '/api/Products';
+    let typeCode: string | null = null;
+
+    // Determine the type code from available sources
+    if (selectedTypeValue) {
+      typeCode = extractTypeCode(selectedTypeValue);
+      console.log('loadProducts: Using selectedTypeValue, extracted code:', typeCode);
+    } else if (selectedTypeLabel) {
+      typeCode = extractTypeCode(selectedTypeLabel);
+      console.log('loadProducts: Using selectedTypeLabel, extracted code:', typeCode);
+    } else if (selectedTypeRaw) {
+      typeCode = extractTypeCode(selectedTypeRaw);
+      console.log('loadProducts: Using selectedTypeRaw, extracted code:', typeCode);
+    }
+
+    // If we have a type code, filter products
+    if (typeCode) {
+      apiUrl = `/api/Products/by-type/${encodeURIComponent(typeCode)}`;
+      console.log('loadProducts: Filtering by type code:', typeCode);
+    } else {
+      console.warn('loadProducts: No type filter found, loading ALL products');
+    }
+
+    console.log('loadProducts: Calling API:', apiUrl);
+    const products = await http.get<Product[]>(apiUrl).toPromise() || [];
+
+    console.log('loadProducts: Received', products.length, 'products from API');
+    console.log('loadProducts: Products:', products.map(p => p.label));
 
     if (products && Array.isArray(products)) {
       // Store the full product objects in the model for reference
@@ -80,31 +119,63 @@ export async function loadProducts(
 
       // If field has schema access, update it
       if (field.schema && field.schema.properties && field.schema.properties.existingProduct) {
-        // Use labels for enum values so dropdown shows readable names
         const enumLabels = products.map(product => product.label);
         field.schema.properties.existingProduct.enum = enumLabels;
         
-        console.log('loadProducts: Updated schema.properties.existingProduct.enum:', enumLabels);
+        console.log('loadProducts: Updated existingProduct enum with', enumLabels.length, 'options');
       }
 
-      console.log(`loadProducts: Successfully loaded ${products.length} products`);
+      console.log(`loadProducts: SUCCESS - Loaded ${products.length} products`);
     } else {
       console.warn('loadProducts: API returned invalid data');
-      if (field.schema && field.schema.properties && field.schema.properties.existingProduct) {
+      if (field.schema?.properties?.existingProduct) {
         field.schema.properties.existingProduct.enum = [];
       }
     }
+    
+    console.log('=== loadProducts END ===');
   } catch (error) {
     console.error('loadProducts: Error fetching products from API', error);
-
-    if (field.schema && field.schema.properties && field.schema.properties.existingProduct) {
+    if (field.schema?.properties?.existingProduct) {
       field.schema.properties.existingProduct.enum = [];
     }
   }
 }
 
 /**
- * Load brands that were selected in step 2 (from model._brandsData or brandTable)
+ * Extract the type code from a type value or label
+ * Examples:
+ *   "IEC" -> "IEC"
+ *   "IEC - Electrical Equipment" -> "IEC"
+ *   "SASO - Saudi Standards" -> "SASO"
+ *   "QML - Quality Management" -> "QML"
+ */
+function extractTypeCode(typeValue: string): string | null {
+  if (!typeValue) return null;
+  
+  console.log('extractTypeCode: Input:', typeValue);
+  
+  // If it contains " - ", extract the first part (the code)
+  if (typeValue.includes(' - ')) {
+    const code = typeValue.split(' - ')[0].trim();
+    console.log('extractTypeCode: Extracted from " - ":', code);
+    return code;
+  }
+  
+  // If it contains " (", extract the part before it
+  if (typeValue.includes(' (')) {
+    const code = typeValue.split(' (')[0].trim();
+    console.log('extractTypeCode: Extracted from " (":', code);
+    return code;
+  }
+  
+  // Otherwise, return as-is (might already be the code)
+  console.log('extractTypeCode: Using as-is:', typeValue.trim());
+  return typeValue.trim();
+}
+
+/**
+ * Load brands that were selected in step 2 (from model._selectedValues.brandTable)
  * These are used for the "Add New Product" form
  *
  * Hook: onInit
@@ -116,24 +187,48 @@ export async function loadSelectedBrands(
   http: HttpClient
 ): Promise<void> {
   try {
-    console.log('loadSelectedBrands: Loading brands for new product form...');
+    console.log('=== loadSelectedBrands START ===');
+    console.log('loadSelectedBrands: model._selectedValues:', model._selectedValues);
 
-    // First try to get brands from API
+    // First check if we have brands from step 2 context
+    const brandsFromContext = model._selectedValues?.brandTable;
+    
+    if (brandsFromContext && Array.isArray(brandsFromContext) && brandsFromContext.length > 0) {
+      console.log('loadSelectedBrands: Using brands from step 2 context:', brandsFromContext);
+      
+      // Convert brand table rows to dropdown options
+      const brandOptions = brandsFromContext.map((brand: any, index: number) => ({
+        value: `brand_${index}`,
+        label: brand.brandName || brand.name || `Brand ${index + 1}`,
+        labelAr: brand.brandNameAr || brand.labelAr || ''
+      }));
+      
+      model._brandsData = brandOptions;
+
+      if (field.schema?.properties?.newProductBrandId) {
+        const enumLabels = brandOptions.map((brand: any) => brand.label);
+        field.schema.properties.newProductBrandId.enum = enumLabels;
+        console.log('loadSelectedBrands: Updated newProductBrandId enum from context:', enumLabels);
+      }
+      return;
+    }
+
+    // Fallback: Load from API
+    console.log('loadSelectedBrands: No brands in context, loading from API');
     const apiUrl = '/api/Brands';
     const brands = await http.get<Brand[]>(apiUrl).toPromise();
-
-    console.log('loadSelectedBrands: Received brands from API:', brands);
 
     if (brands && Array.isArray(brands)) {
       model._brandsData = brands;
 
-      if (field.schema && field.schema.properties && field.schema.properties.newProductBrandId) {
+      if (field.schema?.properties?.newProductBrandId) {
         const enumLabels = brands.map(brand => brand.label);
         field.schema.properties.newProductBrandId.enum = enumLabels;
-        
-        console.log('loadSelectedBrands: Updated newProductBrandId enum:', enumLabels);
+        console.log('loadSelectedBrands: Updated newProductBrandId enum from API:', enumLabels);
       }
     }
+    
+    console.log('=== loadSelectedBrands END ===');
   } catch (error) {
     console.error('loadSelectedBrands: Error loading brands', error);
   }
@@ -151,9 +246,6 @@ export async function loadSectors(
   http: HttpClient
 ): Promise<void> {
   try {
-    console.log('loadSectors: Loading sectors for new product form...');
-
-    // Mock sectors data (in real app, this would come from API)
     const sectors: Sector[] = [
       { value: 'sector_001', label: 'Electronics' },
       { value: 'sector_002', label: 'Home Appliances' },
@@ -165,14 +257,11 @@ export async function loadSectors(
 
     model._sectorsData = sectors;
 
-    if (field.schema && field.schema.properties && field.schema.properties.newProductSectorId) {
-      const enumLabels = sectors.map(sector => sector.label);
-      field.schema.properties.newProductSectorId.enum = enumLabels;
-      
-      console.log('loadSectors: Updated newProductSectorId enum:', enumLabels);
+    if (field.schema?.properties?.newProductSectorId) {
+      field.schema.properties.newProductSectorId.enum = sectors.map(s => s.label);
     }
   } catch (error) {
-    console.error('loadSectors: Error loading sectors', error);
+    console.error('loadSectors: Error', error);
   }
 }
 
@@ -188,9 +277,6 @@ export async function loadClassifications(
   http: HttpClient
 ): Promise<void> {
   try {
-    console.log('loadClassifications: Loading classifications for new product form...');
-
-    // Mock classifications data (in real app, this would come from API)
     const classifications: Classification[] = [
       { value: 'class_001', label: 'Class A - High Safety' },
       { value: 'class_002', label: 'Class B - Standard Safety' },
@@ -201,14 +287,11 @@ export async function loadClassifications(
 
     model._classificationsData = classifications;
 
-    if (field.schema && field.schema.properties && field.schema.properties.newProductClassificationId) {
-      const enumLabels = classifications.map(c => c.label);
-      field.schema.properties.newProductClassificationId.enum = enumLabels;
-      
-      console.log('loadClassifications: Updated newProductClassificationId enum:', enumLabels);
+    if (field.schema?.properties?.newProductClassificationId) {
+      field.schema.properties.newProductClassificationId.enum = classifications.map(c => c.label);
     }
   } catch (error) {
-    console.error('loadClassifications: Error loading classifications', error);
+    console.error('loadClassifications: Error', error);
   }
 }
 
@@ -221,27 +304,16 @@ export function onProductSelected(field: any, model: any): void {
   console.log('onProductSelected: Product selected:', model.existingProduct);
 
   const selectedProductLabel = model.existingProduct;
-  if (!selectedProductLabel) {
-    console.log('onProductSelected: No product selected, skipping');
-    return;
-  }
+  if (!selectedProductLabel) return;
 
-  // Get product data from model (stored during loadProducts)
   const productsData = model._productsData || [];
   const productOption = productsData.find((product: Product) => product.label === selectedProductLabel);
 
-  console.log('onProductSelected: Found product option:', productOption);
-
   if (productOption) {
-    // Initialize productTable if it doesn't exist
-    if (!model.productTable) {
-      model.productTable = [];
-      console.log('onProductSelected: Initialized productTable array');
-    }
+    if (!model.productTable) model.productTable = [];
 
-    // Create the table row
     const row: ProductTableRow = {
-      brandName: '', // Will be filled if we have brand info
+      brandName: '',
       sectorName: '',
       classificationName: '',
       modelName: productOption.productName,
@@ -249,7 +321,6 @@ export function onProductSelected(field: any, model: any): void {
       source: 'Existing'
     };
 
-    // Check if product already exists in table (prevent duplicates)
     const exists = model.productTable.some(
       (existing: ProductTableRow) => 
         existing.modelName === row.modelName && 
@@ -259,67 +330,42 @@ export function onProductSelected(field: any, model: any): void {
     if (!exists) {
       model.productTable = [...model.productTable, row];
       console.log('onProductSelected: Added product to table:', row);
-      console.log('onProductSelected: productTable now has', model.productTable.length, 'entries');
-
-      // Clear the selection
       model.existingProduct = '';
-    } else {
-      console.warn('onProductSelected: Product already exists in table, skipping');
     }
-  } else {
-    console.error('onProductSelected: Product option not found in stored product data');
   }
 }
 
 /**
  * Save new product to the productTable
- *
- * Custom action hook for "Save Product" button
  */
 export function saveNewProduct(field: any, model: any): boolean {
-  const brandName = model['newProductBrandId'];
-  const sectorName = model['newProductSectorId'];
-  const classificationName = model['newProductClassificationId'];
   const modelName = model['newProductModelName'];
-  const modelNumber = model['newProductModelNumber'];
-
   if (!modelName) {
-    console.warn('Model name is required');
     alert('Model name is required!');
     return false;
   }
 
-  // Initialize productTable if it doesn't exist
-  if (!model['productTable']) {
-    model['productTable'] = [];
-  }
+  if (!model['productTable']) model['productTable'] = [];
 
-  // Check for duplicates
   const exists = model['productTable'].some(
-    (product: ProductTableRow) => 
-      product.modelName === modelName && 
-      product.modelNumber === modelNumber
+    (p: ProductTableRow) => p.modelName === modelName && p.modelNumber === model['newProductModelNumber']
   );
 
   if (exists) {
-    console.warn('Product already exists in table');
-    alert('This product already exists in the table!');
+    alert('This product already exists!');
     return false;
   }
 
-  // Add new product to table
-  const newProduct: ProductTableRow = {
-    brandName: brandName || '',
-    sectorName: sectorName || '',
-    classificationName: classificationName || '',
+  model['productTable'] = [...model['productTable'], {
+    brandName: model['newProductBrandId'] || '',
+    sectorName: model['newProductSectorId'] || '',
+    classificationName: model['newProductClassificationId'] || '',
     modelName: modelName,
-    modelNumber: modelNumber || '',
+    modelNumber: model['newProductModelNumber'] || '',
     source: 'New'
-  };
+  }];
 
-  model['productTable'] = [...model['productTable'], newProduct];
-
-  // Clear the input fields
+  // Clear inputs
   model['newProductBrandId'] = '';
   model['newProductSectorId'] = '';
   model['newProductClassificationId'] = '';
@@ -327,18 +373,11 @@ export function saveNewProduct(field: any, model: any): boolean {
   model['newProductModelNumber'] = '';
   model['newProductBarcode'] = '';
 
-  console.log('New product added to table:', newProduct);
   return true;
 }
 
-/**
- * Check if new product can be saved
- *
- * Validation hook for "Save Product" button
- */
 export function canSaveNewProduct(field: any, model: any): boolean {
-  const modelName = model['newProductModelName'];
-  return !!(modelName && modelName.trim());
+  return !!(model['newProductModelName']?.trim());
 }
 
 export const STEP_ID = 'saso_test_step3_products';
@@ -353,7 +392,4 @@ export const hooks = {
   canSaveNewProduct
 };
 
-export default {
-  stepId: STEP_ID,
-  hooks
-};
+export default { stepId: STEP_ID, hooks };

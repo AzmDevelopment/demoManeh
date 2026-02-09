@@ -12,7 +12,7 @@ using backend.Data;
 namespace backend.Migrations
 {
     [DbContext(typeof(WorkflowDbContext))]
-    [Migration("20260125161652_InitialCreate")]
+    [Migration("20260209095458_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -82,6 +82,76 @@ namespace backend.Migrations
                         .HasDatabaseName("IX_StepHistory_Workflow_Step");
 
                     b.ToTable("StepHistoryDetails", (string)null);
+                });
+
+            modelBuilder.Entity("backend.Data.TransitionAuditEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Comments")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DataSnapshotJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Event")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("FromState")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("StepId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ToState")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("TransitionType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("TriggeredBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("TriggeredByRole")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<Guid>("WorkflowInstanceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Timestamp")
+                        .HasDatabaseName("IX_TransitionAudits_Timestamp");
+
+                    b.HasIndex("TriggeredBy")
+                        .HasDatabaseName("IX_TransitionAudits_TriggeredBy");
+
+                    b.HasIndex("WorkflowInstanceId")
+                        .HasDatabaseName("IX_TransitionAudits_WorkflowInstanceId");
+
+                    b.HasIndex("WorkflowInstanceId", "StepId")
+                        .HasDatabaseName("IX_TransitionAudits_Workflow_Step");
+
+                    b.ToTable("TransitionAudits", (string)null);
                 });
 
             modelBuilder.Entity("backend.Data.WorkflowInstanceEntity", b =>
@@ -168,6 +238,15 @@ namespace backend.Migrations
                 });
 
             modelBuilder.Entity("backend.Data.StepHistoryDetailEntity", b =>
+                {
+                    b.HasOne("backend.Data.WorkflowInstanceEntity", null)
+                        .WithMany()
+                        .HasForeignKey("WorkflowInstanceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("backend.Data.TransitionAuditEntity", b =>
                 {
                     b.HasOne("backend.Data.WorkflowInstanceEntity", null)
                         .WithMany()

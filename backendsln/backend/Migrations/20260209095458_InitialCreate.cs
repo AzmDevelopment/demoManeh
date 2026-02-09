@@ -64,6 +64,35 @@ namespace backend.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "TransitionAudits",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    WorkflowInstanceId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    StepId = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    TransitionType = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    FromState = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    ToState = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Event = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    TriggeredBy = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    TriggeredByRole = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
+                    Timestamp = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Comments = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    DataSnapshotJson = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TransitionAudits", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_TransitionAudits_WorkflowInstances_WorkflowInstanceId",
+                        column: x => x.WorkflowInstanceId,
+                        principalTable: "WorkflowInstances",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
             migrationBuilder.CreateIndex(
                 name: "IX_StepHistory_CompletedAt",
                 table: "StepHistoryDetails",
@@ -73,6 +102,26 @@ namespace backend.Migrations
                 name: "IX_StepHistory_Workflow_Step",
                 table: "StepHistoryDetails",
                 columns: new[] { "WorkflowInstanceId", "StepId" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TransitionAudits_Timestamp",
+                table: "TransitionAudits",
+                column: "Timestamp");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TransitionAudits_TriggeredBy",
+                table: "TransitionAudits",
+                column: "TriggeredBy");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TransitionAudits_Workflow_Step",
+                table: "TransitionAudits",
+                columns: new[] { "WorkflowInstanceId", "StepId" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TransitionAudits_WorkflowInstanceId",
+                table: "TransitionAudits",
+                column: "WorkflowInstanceId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_WorkflowInstances_CreatedBy",
@@ -101,6 +150,9 @@ namespace backend.Migrations
         {
             migrationBuilder.DropTable(
                 name: "StepHistoryDetails");
+
+            migrationBuilder.DropTable(
+                name: "TransitionAudits");
 
             migrationBuilder.DropTable(
                 name: "WorkflowInstances");
