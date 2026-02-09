@@ -30,12 +30,34 @@
   },
 
   "hooks": {
-    "onInit": ["loadTypes"]
+    "onInit": ["loadTypes"],
+    "onChange": {
+      "selectedType": "onTypeSelected"
+    }
+  },
+
+  "stateMachine": {
+    "initialStatus": "not_started",
+    "allowedEvents": ["Enter", "Save", "Submit", "GoBack"],
+    "transitions": {
+      "onEnter": { "from": "not_started", "to": "active" },
+      "onSave": { "from": ["active", "in_progress"], "to": "in_progress" },
+      "onSubmit": { "from": ["active", "in_progress"], "to": "completed" }
+    },
+    "requiredForSubmit": ["selectedType"],
+    "canGoBack": false
+  },
+
+  "context": {
+    "provides": ["selectedTypeValue", "selectedTypeLabel"],
+    "requires": []
   },
 
   "stepConfig": {
     "canSendBack": false,
     "nextStep": "saso_test_step2_brands",
-    "estimatedDurationHours": 24
+    "previousStep": null,
+    "estimatedDurationHours": 24,
+    "isFirstStep": true
   }
 }

@@ -115,9 +115,28 @@
     }
   },
 
+  "stateMachine": {
+    "initialStatus": "not_started",
+    "allowedEvents": ["Enter", "Save", "Submit", "GoBack"],
+    "transitions": {
+      "onEnter": { "from": "not_started", "to": "active" },
+      "onSave": { "from": ["active", "in_progress"], "to": "in_progress" },
+      "onSubmit": { "from": ["active", "in_progress"], "to": "completed" },
+      "onGoBack": { "from": ["active", "in_progress"], "to": "active" }
+    },
+    "requiredForSubmit": ["brandTable"],
+    "canGoBack": true
+  },
+
+  "context": {
+    "provides": ["brandTable"],
+    "requires": ["selectedTypeValue"]
+  },
+
   "stepConfig": {
     "canSendBack": true,
     "nextStep": "saso_test_step3_products",
+    "previousStep": "saso_test_step1_types",
     "estimatedDurationHours": 24,
     "validation": {
       "type": "brandTable",

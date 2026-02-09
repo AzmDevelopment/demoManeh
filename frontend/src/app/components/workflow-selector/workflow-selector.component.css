@@ -523,6 +523,184 @@
   margin-bottom: 16px;
 }
 
+/* Status Section in Header */
+.header-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.status-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.status-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-description {
+  color: #718096;
+  font-size: 0.85rem;
+}
+
+/* Status Colors */
+.bg-gray-100 { background-color: #f7fafc; }
+.text-gray-800 { color: #2d3748; }
+.text-gray-500 { color: #a0aec0; }
+
+.bg-blue-100 { background-color: #ebf8ff; }
+.text-blue-800 { color: #2b6cb0; }
+
+.bg-yellow-100 { background-color: #fffff0; }
+.text-yellow-800 { color: #975a16; }
+
+.bg-orange-100 { background-color: #fffaf0; }
+.text-orange-800 { color: #c05621; }
+
+.bg-red-100 { background-color: #fff5f5; }
+.text-red-800 { color: #c53030; }
+
+.bg-green-100 { background-color: #f0fff4; }
+.text-green-800 { color: #276749; }
+
+/* Step Status Badge */
+.step-status-badge {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.status-not_started {
+  background-color: #e2e8f0;
+  color: #718096;
+}
+
+.status-active {
+  background-color: #ebf8ff;
+  color: #2b6cb0;
+}
+
+.status-in_progress {
+  background-color: #faf5ff;
+  color: #6b46c1;
+}
+
+.status-completed {
+  background-color: #f0fff4;
+  color: #276749;
+}
+
+.status-sent_back {
+  background-color: #fff5f5;
+  color: #c53030;
+}
+
+/* Available Actions */
+.available-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.actions-label {
+  color: #718096;
+  font-size: 0.85rem;
+}
+
+.action-chip {
+  background-color: #edf2f7;
+  color: #4a5568;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+/* Context Info */
+.context-info {
+  background-color: #f7fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 20px;
+}
+
+.context-info small {
+  color: #718096;
+}
+
+/* Progress Step Enhancements */
+.progress-step.pending {
+  background: #e2e8f0;
+  color: #a0aec0;
+}
+
+.progress-step .step-check {
+  position: absolute;
+  font-size: 0.75rem;
+}
+
+.step-status-text {
+  color: #a0aec0;
+  font-style: italic;
+}
+
+/* Step Navigation Enhancements */
+.step-navigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 24px;
+  border-top: 1px solid #e2e8f0;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.btn-save {
+  background-color: #edf2f7;
+  color: #4a5568;
+}
+
+.btn-save:hover {
+  background-color: #e2e8f0;
+}
+
+.btn-save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.nav-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-primary:disabled,
+.btn-success:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Completion Status */
+.completion-status {
+  background-color: #f0fff4;
+  color: #276749;
+  padding: 8px 16px;
+  border-radius: 8px;
+  display: inline-block;
+  margin-bottom: 16px;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .workflow-cards {
@@ -536,6 +714,20 @@
 
   .step-navigation .btn {
     width: 100%;
+  }
+
+  .btn-save {
+    width: 100%;
+  }
+  
+  .status-section {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .available-actions {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 

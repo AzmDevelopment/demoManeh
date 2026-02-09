@@ -200,10 +200,38 @@
     }
   },
 
+  "stateMachine": {
+    "initialStatus": "not_started",
+    "allowedEvents": ["Enter", "Save", "Submit", "GoBack", "Complete"],
+    "transitions": {
+      "onEnter": { "from": "not_started", "to": "active" },
+      "onSave": { "from": ["active", "in_progress"], "to": "in_progress" },
+      "onSubmit": { "from": ["active", "in_progress"], "to": "completed" },
+      "onGoBack": { "from": ["active", "in_progress"], "to": "active" },
+      "onComplete": { "from": ["active", "in_progress"], "to": "completed", "workflowComplete": true }
+    },
+    "requiredForSubmit": ["productTable"],
+    "canGoBack": true
+  },
+
+  "context": {
+    "provides": ["productTable"],
+    "requires": ["selectedTypeValue", "brandTable"],
+    "filters": {
+      "existingProduct": {
+        "filterBy": "selectedTypeValue",
+        "apiEndpoint": "/api/Products/by-type/{value}",
+        "sourceField": "productType"
+      }
+    }
+  },
+
   "stepConfig": {
     "canSendBack": true,
     "nextStep": "completed",
+    "previousStep": "saso_test_step2_brands",
     "estimatedDurationHours": 48,
+    "isLastStep": true,
     "validation": {
       "type": "productTable",
       "minRequired": 1,

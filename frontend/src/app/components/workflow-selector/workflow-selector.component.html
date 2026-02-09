@@ -77,27 +77,47 @@
   <!-- Workflow Step View - Show when a workflow is selected -->
   @if (selectedWorkflow()) {
     <div class="workflow-step-view">
-      <!-- Header with back button -->
+      <!-- Header with back button and status -->
       <div class="step-header">
         <button class="btn btn-back" (click)="backToWorkflowList()">
           ← Back to Workflows
         </button>
-        <h1>{{ selectedWorkflow()?.name }}</h1>
+        <div class="header-content">
+          <h1>{{ selectedWorkflow()?.name }}</h1>
+          <!-- Workflow Status Badge -->
+          @if (workflowStatus()) {
+            <div class="status-section">
+              <span class="status-badge" [ngClass]="getStatusClass()">
+                {{ getStatusDisplayName() }}
+              </span>
+              @if (workflowStatus()?.description) {
+                <span class="status-description">{{ workflowStatus()?.description }}</span>
+              }
+            </div>
+          }
+        </div>
       </div>
 
-      <!-- Progress indicator -->
+      <!-- Progress indicator with step status -->
       <div class="progress-bar">
         <div class="progress-track">
           @for (step of selectedWorkflow()?.steps; track $index; let i = $index) {
             <div class="progress-step"
                  [class.active]="i === currentStepIndex()"
-                 [class.completed]="i < currentStepIndex()">
+                 [class.completed]="i < currentStepIndex()"
+                 [class.pending]="i > currentStepIndex()">
               <span class="step-number">{{ i + 1 }}</span>
+              @if (i < currentStepIndex()) {
+                <span class="step-check">✓</span>
+              }
             </div>
           }
         </div>
         <p class="step-counter">
           Step {{ currentStepIndex() + 1 }} of {{ (selectedWorkflow()?.steps && selectedWorkflow()!.steps.length) || 0 }}
+          @if (stepStatus()) {
+            <span class="step-status-text">({{ stepStatus()?.status }})</span>
+          }
         </p>
       </div>
 
@@ -118,8 +138,34 @@
               @if (currentStep()?.stepConfig?.estimatedDurationHours) {
                 <span class="duration-badge">Est. Duration: {{ currentStep()?.stepConfig?.estimatedDurationHours }}h</span>
               }
+              <!-- Step Status from State Machine -->
+              @if (stepStatus()) {
+                <span class="step-status-badge" [class]="'status-' + stepStatus()?.status">
+                  Status: {{ stepStatus()?.status }}
+                </span>
+              }
             </div>
+            
+            <!-- Available Actions from State Machine -->
+            @if (availableStepEvents().length > 0) {
+              <div class="available-actions">
+                <span class="actions-label">Available actions:</span>
+                @for (event of availableStepEvents(); track event) {
+                  <span class="action-chip">{{ event }}</span>
+                }
+              </div>
+            }
           </div>
+
+          <!-- Context Requirements Display (for debugging/info) -->
+          @if (currentStep()?.context?.requires && currentStep()!.context!.requires!.length > 0) {
+            <div class="context-info">
+              <small>
+                <strong>Requires from previous steps:</strong>
+                {{ currentStep()?.context?.requires?.join(', ') }}
+              </small>
+            </div>
+          }
 
           <!-- JSON Form -->
           @if (schema()) {
@@ -134,28 +180,38 @@
 
               <!-- Navigation buttons -->
               <div class="step-navigation">
+                <!-- Save Progress Button -->
                 <button type="button"
-                        class="btn btn-secondary"
-                        (click)="loadPreviousStep()"
-                        [disabled]="isFirstStep()">
-                  ← Previous Step
+                        class="btn btn-secondary btn-save"
+                        (click)="saveStepProgress()"
+                        [disabled]="!canExecuteStepEvent('Save')">
+                  💾 Save Progress
                 </button>
 
-                @if (!isLastStep()) {
+                <div class="nav-buttons">
                   <button type="button"
-                          class="btn btn-primary"
-                          (click)="onSubmit()"
-                          [disabled]="!isFormValid()">
-                    Next Step →
+                          class="btn btn-secondary"
+                          (click)="loadPreviousStep()"
+                          [disabled]="!canGoBack()">
+                    ← Previous Step
                   </button>
-                } @else {
-                  <button type="button"
-                          class="btn btn-success"
-                          (click)="onSubmit()"
-                          [disabled]="!isFormValid()">
-                    Complete Workflow ✓
-                  </button>
-                }
+
+                  @if (!isLastStep()) {
+                    <button type="button"
+                            class="btn btn-primary"
+                            (click)="onSubmit()"
+                            [disabled]="!isFormValid() || !canExecuteStepEvent('Submit')">
+                      Next Step →
+                    </button>
+                  } @else {
+                    <button type="button"
+                            class="btn btn-success"
+                            (click)="onSubmit()"
+                            [disabled]="!isFormValid() || !canExecuteStepEvent('Submit')">
+                      Complete Workflow ✓
+                    </button>
+                  }
+                </div>
               </div>
             </div>
           } @else if (fields().length > 0) {
@@ -170,28 +226,38 @@
 
               <!-- Navigation buttons -->
               <div class="step-navigation">
+                <!-- Save Progress Button -->
                 <button type="button"
-                        class="btn btn-secondary"
-                        (click)="loadPreviousStep()"
-                        [disabled]="isFirstStep()">
-                  ← Previous Step
+                        class="btn btn-secondary btn-save"
+                        (click)="saveStepProgress()"
+                        [disabled]="!canExecuteStepEvent('Save')">
+                  💾 Save Progress
                 </button>
 
-                @if (!isLastStep()) {
+                <div class="nav-buttons">
                   <button type="button"
-                          class="btn btn-primary"
-                          (click)="onSubmit()"
-                          [disabled]="!isFormValid()">
-                    Next Step →
+                          class="btn btn-secondary"
+                          (click)="loadPreviousStep()"
+                          [disabled]="!canGoBack()">
+                    ← Previous Step
                   </button>
-                } @else {
-                  <button type="button"
-                          class="btn btn-success"
-                          (click)="onSubmit()"
-                          [disabled]="!isFormValid()">
-                    Complete Workflow ✓
-                  </button>
-                }
+
+                  @if (!isLastStep()) {
+                    <button type="button"
+                            class="btn btn-primary"
+                            (click)="onSubmit()"
+                            [disabled]="!isFormValid() || !canExecuteStepEvent('Submit')">
+                      Next Step →
+                    </button>
+                  } @else {
+                    <button type="button"
+                            class="btn btn-success"
+                            (click)="onSubmit()"
+                            [disabled]="!isFormValid() || !canExecuteStepEvent('Submit')">
+                      Complete Workflow ✓
+                    </button>
+                  }
+                </div>
               </div>
             </div>
           }
@@ -202,6 +268,9 @@
           <div class="success-icon">✓</div>
           <h2>Workflow Complete!</h2>
           <p>All steps have been completed successfully.</p>
+          @if (workflowStatus()?.status === 'completed') {
+            <p class="completion-status">Status: {{ workflowStatus()?.displayName }}</p>
+          }
           <button class="btn btn-primary" (click)="backToWorkflowList()">
             Start Another Workflow
           </button>

@@ -65,6 +65,7 @@ builder.Services.AddSingleton<IWorkflowDefinitionProvider, FileSystemWorkflowDef
 builder.Services.AddScoped<IWorkflowRepository, EfCoreWorkflowRepository>();
 builder.Services.AddSingleton<ValidationRuleFactory>();
 builder.Services.AddScoped<IWorkflowEngine, WorkflowEngine>();
+builder.Services.AddScoped<IWorkflowStateMachine, WorkflowStateMachine>(); // State Machine
 builder.Services.AddSingleton<IFileStorageService, LocalFileStorageService>();
 
 var app = builder.Build();

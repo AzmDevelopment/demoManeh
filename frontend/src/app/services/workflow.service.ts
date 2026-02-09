@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 export interface WorkflowDefinition {
   certificationId: string;
@@ -96,9 +97,11 @@ export interface StepHistoryEntry {
   providedIn: 'root'
 })
 export class WorkflowService {
-  private apiUrl = '/api/Workflow';
+  private apiUrl = `${environment.apiBaseUrl}/Workflow`;
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient) {
+    console.log('WorkflowService initialized with API URL:', this.apiUrl);
+  }
 
   /**
    * Get all available workflow definitions
@@ -191,15 +194,7 @@ export class WorkflowService {
     console.log('Instance ID:', instanceId);
     console.log('Step ID:', stepId);
     console.log('Uploaded By:', uploadedBy);
-    console.log('FormData:', files);
 
-    // Log FormData contents
-    console.log('FormData contents:');
-    (files as any).forEach((value: any, key: string) => {
-      console.log(`  ${key}:`, value instanceof File ? `File(${value.name}, ${value.size} bytes)` : value);
-    });
-
-    // Don't set Content-Type header - browser will set it automatically with boundary
     return this.http.post<any>(
       `${this.apiUrl}/instances/${instanceId}/steps/${stepId}/upload?uploadedBy=${uploadedBy}`,
       files
